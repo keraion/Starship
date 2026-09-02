@@ -3522,12 +3522,13 @@ void Map_PathChange_Update(void) {
     s32 i;
 
     switch (D_menu_801CD94C) {
-        case 0:
+        case 0: {
             // @port: @event: map option menu input
             CALL_CANCELLABLE_EVENT(MapMenuInputEvent) {
                 Map_PathChange_Input();
             }
             break;
+        }
 
         case 1:
             if (D_menu_801CF000[D_menu_801CEFDC] == 0) {
