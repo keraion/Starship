@@ -1,6 +1,10 @@
 #include "ImguiUI.h"
 #include "UIWidgets.h"
 #include "ResolutionEditor.h"
+#ifdef ENABLE_ARCHIPELAGO
+#include "port/archipelago/ArchipelagoWindow.h"
+#include "port/archipelago/ArchipelagoConsole.h"
+#endif
 
 #include <spdlog/spdlog.h>
 #include <imgui.h>
@@ -33,6 +37,10 @@ std::shared_ptr<Ship::GuiWindow> mInputEditorWindow;
 std::shared_ptr<Ship::GuiWindow> mGfxDebuggerWindow;
 std::shared_ptr<Notification::Window> mNotificationWindow;
 std::shared_ptr<AdvancedResolutionSettings::AdvancedResolutionSettingsWindow> mAdvancedResolutionSettingsWindow;
+#ifdef ENABLE_ARCHIPELAGO
+std::shared_ptr<ArchipelagoWindow> mArchipelagoWindow;
+std::shared_ptr<ArchipelagoConsole::Window> mArchipelagoConsoleWindow;
+#endif
 
 void SetupGuiElements() {
     auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
@@ -79,6 +87,12 @@ void SetupGuiElements() {
     mNotificationWindow = std::make_shared<Notification::Window>("gNotifications", "Notifications Window");
     gui->AddGuiWindow(mNotificationWindow);
     mNotificationWindow->Show();
+#ifdef ENABLE_ARCHIPELAGO
+    mArchipelagoWindow = std::make_shared<ArchipelagoWindow>("gArchipelago.WindowOpen", "Archipelago");
+    gui->AddGuiWindow(mArchipelagoWindow);
+    mArchipelagoConsoleWindow = std::make_shared<ArchipelagoConsole::Window>("gArchipelago.ConsoleOpen", "Archipelago Console");
+    gui->AddGuiWindow(mArchipelagoConsoleWindow);
+#endif
 }
 
 void Destroy() {
@@ -90,6 +104,10 @@ void Destroy() {
     mStatsWindow = nullptr;
     mInputEditorWindow = nullptr;
     mNotificationWindow = nullptr;
+#ifdef ENABLE_ARCHIPELAGO
+    mArchipelagoWindow = nullptr;
+    mArchipelagoConsoleWindow = nullptr;
+#endif
 }
 
 std::string GetWindowButtonText(const char* text, bool menuOpen) {
@@ -933,7 +951,11 @@ void GameMenuBar::DrawElement() {
 
         ImGui::SetCursorPosY(0.0f);
 
+#ifdef ENABLE_ARCHIPELAGO
+        DrawArchipelagoMenu();
+
         ImGui::SetCursorPosY(0.0f);
+#endif
 
         DrawDebugMenu();
 

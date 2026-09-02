@@ -490,6 +490,8 @@ void Object_Load(ObjectInit* objInit, f32 xMax, f32 xMin, f32 yMax, f32 yMin) {
             for (i = 0; i < ARRAY_COUNT(gItems); i++) {
                 if (gItems[i].obj.status == OBJ_FREE) {
                     Item_Load(&gItems[i], objInit);
+                    // @port: @event: static item spawned from the level object list
+                    CALL_EVENT(ItemStaticLoadEvent, &gItems[i], objInit, (s32) (objInit - gLevelObjects));
                     break;
                 }
             }

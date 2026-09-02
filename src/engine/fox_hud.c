@@ -1295,6 +1295,9 @@ void HUD_SetMissionTeamStatus(void) {
 void HUD_Bolse_Area6_SaveData(void) {
     PlanetId planetId;
 
+    // @port: @event: Bolse / Area 6 are about to chain into Venom; listeners may redirect to the map instead
+    CALL_CANCELLABLE_RETURN_EVENT(PreVenomTransitionEvent, gCurrentLevel);
+
     if ((gCurrentLevel == LEVEL_BOLSE) || (gCurrentLevel == LEVEL_AREA_6)) {
         planetId = PLANET_BOLSE;
 

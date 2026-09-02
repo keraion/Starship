@@ -40,6 +40,9 @@
 #include "audio/GameAudio.h"
 #include "port/patches/DisplayListPatch.h"
 #include "port/mods/PortEnhancements.h"
+#ifdef ENABLE_ARCHIPELAGO
+#include "port/archipelago/Archipelago.h"
+#endif
 
 #include <Fast3D/interpreter.h>
 #include <filesystem>
@@ -302,9 +305,15 @@ void GameEngine::Create() {
     osSetTime(0);
 #endif
     PortEnhancements_Init();
+#ifdef ENABLE_ARCHIPELAGO
+    Archipelago::Init();
+#endif
 }
 
 void GameEngine::Destroy() {
+#ifdef ENABLE_ARCHIPELAGO
+    Archipelago::Shutdown();
+#endif
     PortEnhancements_Exit();
     AudioExit();
     for (auto ptr : MemoryPool) {
@@ -391,8 +400,17 @@ void GameEngine::HandleAudioThread() {
 
         const int32_t num_audio_channels = GetNumAudioChannels();
 
+        // @port: when game ticks run late (slow frames) the queue drains faster than one tick's worth of
+        // audio refills it. Mix extra frames to cover the deficit instead of letting playback starve.
+        int frames_to_mix = AUDIO_FRAMES_PER_UPDATE;
+        const int desired = AudioPlayerGetDesiredBuffered();
+        if (samples_left < desired && num_audio_samples > 0) {
+            const int deficit = (desired - samples_left) / (int) num_audio_samples;
+            frames_to_mix = std::min(MAX_AUDIO_FRAMES_PER_UPDATE, frames_to_mix + deficit);
+        }
+
         s16 audio_buffer[SAMPLES_HIGH * MAX_NUM_AUDIO_CHANNELS * MAX_AUDIO_FRAMES_PER_UPDATE] = { 0 };
-        for (int i = 0; i < AUDIO_FRAMES_PER_UPDATE; i++) {
+        for (int i = 0; i < frames_to_mix; i++) {
             AudioThread_CreateNextAudioBuffer(audio_buffer + i * (num_audio_samples * num_audio_channels),
                                               num_audio_samples);
         }
@@ -403,7 +421,7 @@ void GameEngine::HandleAudioThread() {
         }
 #endif
         AudioPlayerPlayFrame((u8*) audio_buffer,
-                             num_audio_samples * (sizeof(int16_t) * num_audio_channels * AUDIO_FRAMES_PER_UPDATE));
+                             num_audio_samples * (sizeof(int16_t) * num_audio_channels * frames_to_mix));
         
         audio.processing = false;
         audio.cv_from_thread.notify_one();

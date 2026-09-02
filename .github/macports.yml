@@ -19,3 +19,5 @@ ports:
     select: [ universal ]
   - name: libvorbis
     select: [ universal ]
+  - name: openssl3
+    select: [ universal ]

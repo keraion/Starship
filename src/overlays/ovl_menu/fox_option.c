@@ -15,6 +15,9 @@
 #include "assets/ast_map.h"
 #include "port/interpolation/FrameInterpolation.h"
 #include "port/mods/PortEnhancements.h"
+#include "port/archipelago/ArchipelagoBridge.h"
+#include "port/archipelago/game/ApGame.h"
+#include "port/hooks/Events.h"
 
 extern s32 gRankingTeamAlive[][3];
 extern Gfx gMapVenomCloudDL[];
@@ -438,7 +441,9 @@ void Option_Setup(void) {
     if ((gLastGameState == GSTATE_GAME_OVER) || (gLastGameState == GSTATE_ENDING)) {
         if (gLastGameState == GSTATE_ENDING) {
             gMissionPlanet[gMissionNumber] = PLANET_VENOM;
-            if (gLeveLClearStatus[LEVEL_VENOM_ANDROSS] == 1) {
+            if (AP_IsEnabled()) {
+                // @port: Archipelago keeps its own per-slot progress
+            } else if (gLeveLClearStatus[LEVEL_VENOM_ANDROSS] == 1) {
                 gSaveFile.save.data.planet[SAVE_SLOT_VENOM_1].played = 1;
                 if (playedExpertMode) {
                     gSaveFile.save.data.planet[SAVE_SLOT_VENOM_1].expertClear = 1;
@@ -977,10 +982,13 @@ void Option_MainMenu_Update(void) {
                     break;
                 }
 #endif
-                AUDIO_PLAY_SFX(NA_SE_ARWING_DECIDE, gDefaultSfxSource, 4);
-                sLightningYpos = sOptionCardPosY[sMainMenuCursor];
-                sDrawCursor = false;
-                sMainMenuState = 11;
+                // @port: @event: main menu selection; listeners may refuse (e.g. Archipelago not connected)
+                CALL_CANCELLABLE_EVENT(MainMenuSelectEvent, sMainMenuCursor) {
+                    AUDIO_PLAY_SFX(NA_SE_ARWING_DECIDE, gDefaultSfxSource, 4);
+                    sLightningYpos = sOptionCardPosY[sMainMenuCursor];
+                    sDrawCursor = false;
+                    sMainMenuState = 11;
+                }
             }
             if (gControllerPress[gMainController].button & B_BUTTON) {
                 AUDIO_PLAY_SFX(NA_SE_ARWING_CANCEL, gDefaultSfxSource, 4);
@@ -1100,6 +1108,9 @@ void Option_MainMenu_Draw(void) {
     }
 
     Option_CardLightning_Update();
+
+    // @port: Archipelago connection status
+    ApMenu_DrawStatus();
 }
 
 void Option_Versus_Setup(void) {

@@ -1,0 +1,49 @@
+#pragma once
+
+// Game-side Archipelago integration (C). Ports the behaviour of the
+// AP-Star-Fox-64 ROM hack (n64/src/{map,object,main,save,hud}.c) onto
+// Starship's globals and event system. Everything is a no-op unless an
+// Archipelago session is active (AP_IsEnabled()).
+
+#include "global.h"
+#include "fox_map.h"
+#include "fox_option.h"
+#include "port/mods/PortEnhancements.h"
+#include "port/archipelago/ArchipelagoBridge.h"
+#include "port/hooks/Events.h"
+
+// ---- ApTables.c
+s16 ApTables_GetStaticLocation(LevelId level, s32 index);
+s16 ApTables_ClearLocation(PlanetId planet, s32 missionStatus);
+s16 ApTables_MedalLocationForPlanet(PlanetId planet);
+s16 ApTables_MedalLocationForLevel(LevelId level);
+s16 ApTables_MedalOption(LevelId level);
+LevelId ApTables_PlanetToLevel(PlanetId planet);
+s16 ApTables_LevelItem(LevelId level);
+extern const s16 gApTablesPathItem[24];
+bool ApTables_IsCheckpointLocation(s16 loc);
+s16 ApTables_CheckpointItem(s16 loc);
+
+// ---- ApItems.c
+void ApItems_Init(void);
+void ApItems_GrantLives(void);
+
+// ---- ApMission.c
+void ApMission_Init(void);
+void ApMission_PersistStats(void);
+s32 ApMission_MedalCount(void);
+
+// ---- ApMap.c
+void ApMap_Init(void);
+void ApMap_OnSetupPlayEnd(void);   // called from Map_Setup_Play instead of the forced next-planet zoom
+bool ApMap_StartVenomFromZoom(void); // called at the top of Map_ZoomPlanet_Update
+void ApMap_OnLevelStart(void);      // called from Map_LevelStart_Update case 0
+s32 ApMap_PlanetStatus(PlanetId planet);
+bool ApMap_CanStart(LevelId level);
+
+// ---- ApMenu.c
+void ApMenu_Init(void);
+void ApMenu_DrawStatus(void);
+
+// ---- registration (called from PortEnhancements_Init)
+void ApGame_Init(void);

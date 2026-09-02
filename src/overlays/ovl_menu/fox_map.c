@@ -17,6 +17,9 @@
 #include "assets/ast_font_3d.h"
 #include "port/interpolation/FrameInterpolation.h"
 #include "port/mods/PortEnhancements.h"
+#include "port/archipelago/ArchipelagoBridge.h"
+#include "port/archipelago/game/ApGame.h"
+#include "port/hooks/Events.h"
 
 extern bool gBackToMap;
 
@@ -1386,6 +1389,9 @@ void Map_Setup(void) {
 
     Map_PositionPlanets();
 
+    // @port: @event: map setup, before the per-entry setup
+    CALL_EVENT(MapSetupPreEvent, gLastGameState);
+
     switch (gLastGameState) {
         default:
         case GSTATE_NONE:
@@ -1400,6 +1406,9 @@ void Map_Setup(void) {
             Map_Setup_GameOver();
             break;
     }
+
+    // @port: @event: map setup, after the per-entry setup
+    CALL_EVENT(MapSetupPostEvent, gLastGameState);
 
     Map_PositionCursor();
 
@@ -1476,6 +1485,10 @@ void Map_Setup_Play(void) {
         Map_PlanetSaveSlot_Setup(gCurrentLevel, SAVETYPE_MEDAL);
     }
 
+    // @port: @event: level result recorded (gHitCount still holds the level score)
+    CALL_EVENT(MissionClearEvent, gCurrentLevel, sCurrentPlanetId, sPrevMissionStatus,
+               gLeveLClearStatus[gCurrentLevel] == 2);
+
     Save_Write();
 
     Map_Level_CamSetup();
@@ -1484,21 +1497,26 @@ void Map_Setup_Play(void) {
 
     Map_CurrentPlanet_SetAlpha();
 
-    switch (sPrevMissionStatus) {
-        case MISSION_COMPLETE:
-            sNextPlanetId = sPlanets[sCurrentPlanetId].dest1;
-            break;
+    if (AP_IsEnabled()) {
+        // @port: Archipelago: no forced progression, the player picks the next planet on the map.
+        sNextPlanetId = sCurrentPlanetId;
+    } else {
+        switch (sPrevMissionStatus) {
+            case MISSION_COMPLETE:
+                sNextPlanetId = sPlanets[sCurrentPlanetId].dest1;
+                break;
 
-        case MISSION_ACCOMPLISHED:
-            sNextPlanetId = sPlanets[sCurrentPlanetId].dest2;
-            break;
+            case MISSION_ACCOMPLISHED:
+                sNextPlanetId = sPlanets[sCurrentPlanetId].dest2;
+                break;
 
-        case MISSION_WARP:
-            sNextPlanetId = sPlanets[sCurrentPlanetId].warp;
-            break;
+            case MISSION_WARP:
+                sNextPlanetId = sPlanets[sCurrentPlanetId].warp;
+                break;
+        }
+
+        gMissionNumber++;
     }
-
-    gMissionNumber++;
 
     Map_PlanetExplosions_Setup();
 
@@ -1520,6 +1538,9 @@ void Map_Setup_Play(void) {
 
     D_menu_801CD94C = 0;
     sMapState = MAP_ZOOM_PLANET_PATH;
+
+    // @port: Archipelago skips the zoom along the next path and goes straight to the idle map.
+    ApMap_OnSetupPlayEnd();
 }
 
 void Map_Setup_GameOver(void) {
@@ -1716,6 +1737,11 @@ void Map_PlanetExplosions_Setup(void) {
 bool Map_PlanetSaveSlot_Setup(LevelId levelId, PlanetSaveSlotTypes type) {
     s32 ret;
     s32 planetSaveSlot;
+
+    // @port: Archipelago progress lives in the per-slot save, not in the planet bits.
+    if (AP_IsEnabled()) {
+        return false;
+    }
 
 #ifdef AVOID_UB
     planetSaveSlot = PLANET_CORNERIA;
@@ -1945,7 +1971,10 @@ void Map_Draw(void) {
     Map_BriefingRadio_Update();
 
     if (D_menu_801CEFC4) {
-        Map_PathChange_DrawOptions();
+        // @port: @event: map option menu draw
+        CALL_CANCELLABLE_EVENT(MapMenuDrawEvent) {
+            Map_PathChange_DrawOptions();
+        }
     }
 
     if (D_menu_801CD964) {
@@ -2077,7 +2106,12 @@ void Map_Texture_Sphere(u8* textureDest, u8* textureSrc, f32* offset) {
     }
 
 #ifndef __SWITCH__
-    gSPInvalidateTexCache(gMasterDisp++, NULL);
+    // @port: Only drop the cached copies of the texture that was just rewritten. The planet display
+    // lists load it as twelve 96x8 strips, each cached by its own address. Invalidating everything
+    // (NULL) re-uploaded every texture on the map three times per frame.
+    for (i = 0; i < 12; i++) {
+        gSPInvalidateTexCache(gMasterDisp++, textureDest + (96 * 8 * i));
+    }
 #endif
 }
 
@@ -2430,6 +2464,11 @@ void Map_ZoomPlanet_Setup(void) {
 // Camera zooms into planet before briefing starts
 void Map_ZoomPlanet_Update(void) {
     s32 i;
+
+    // @port: Archipelago: Venom has no briefing, start it directly.
+    if (ApMap_StartVenomFromZoom()) {
+        return;
+    }
 
     switch (sMapSubState) {
         case 0:
@@ -3484,7 +3523,10 @@ void Map_PathChange_Update(void) {
 
     switch (D_menu_801CD94C) {
         case 0:
-            Map_PathChange_Input();
+            // @port: @event: map option menu input
+            CALL_CANCELLABLE_EVENT(MapMenuInputEvent) {
+                Map_PathChange_Input();
+            }
             break;
 
         case 1:
@@ -3948,6 +3990,7 @@ void Map_LevelStart_Update(void) {
             sWipeHeight = 0;
             D_menu_801CD9A0 = true;
             Map_CurrentLevel_Setup();
+            ApMap_OnLevelStart();
             sLevelPlayed = Map_LevelPlayedStatus_Check(sCurrentPlanetId);
             Map_BriefingRadio_Setup();
             sLevelStartState++;
@@ -4087,6 +4130,11 @@ bool Map_LevelPlayedStatus_Check(PlanetId planet) {
     u32 planetSaveSlot;
     s32 played = true;
 
+    // @port: Archipelago: briefings are always skippable.
+    if (AP_IsEnabled()) {
+        return false;
+    }
+
     switch (planet) {
         case PLANET_METEO:
         case PLANET_AREA_6:
@@ -4180,6 +4228,10 @@ void Map_CurrentLevel_Setup(void) {
 
         case PLANET_VENOM:
             gCurrentLevel = LEVEL_VENOM_1;
+            // @port: Archipelago: the Area 6 route enters Venom 2.
+            if (AP_IsEnabled() && (sPrevPlanetId == PLANET_AREA_6)) {
+                gCurrentLevel = LEVEL_VENOM_2;
+            }
             break;
 
         case PLANET_SOLAR:
@@ -4466,6 +4518,11 @@ s32 Map_CheckPlanetMedal(PlanetId planetId) {
     s32 planetSaveSlot;
     bool medal;
     bool clear;
+
+    // @port: Archipelago: glyphs come from the per-slot state (medal = medal location checked, star = accessible).
+    if (AP_IsEnabled()) {
+        return ApMap_PlanetStatus(planetId);
+    }
 
     if (planetId == PLANET_VENOM) {
         if (gExpertMode) {
@@ -5564,6 +5621,9 @@ void Map_801A9DE8(void) {
         Map_TotalHits_Draw();
         Map_801A9FD4(false);
     }
+
+    // @port: @event: map HUD overlay
+    CALL_EVENT(MapHudDrawEvent);
 }
 
 void Map_TotalHits_Draw(void) {
@@ -6746,6 +6806,9 @@ void Map_Idle_Update(void) {
 
     movingCameraStick = false;
     movingCamera = false;
+
+    // @port: @event: idle map input; listeners may consume A/START/D-pad
+    CALL_CANCELLABLE_RETURN_EVENT(MapIdleUpdateEvent);
 
     if (gControllerPress[gMainController].button & A_BUTTON) {
         if (CVarGetInteger("gLevelSelector", 0) == 1) {

@@ -44,6 +44,9 @@ set(VCPKG_TRIPLET x64-windows-static)
 set(VCPKG_TARGET_TRIPLET x64-windows-static)
 vcpkg_bootstrap()
 vcpkg_install_packages(zlib bzip2 libzip libpng sdl2 glew glfw3 nlohmann-json tinyxml2 spdlog libogg libvorbis)
+if (ENABLE_ARCHIPELAGO)
+    vcpkg_install_packages(openssl)
+endif()
 
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -96,7 +99,17 @@ endif()
 
 # Set game compilation version
 set(VERSION us)
-set(USE_NETWORKING OFF)
+# Archipelago multiworld support (apclientpp). Not supported on Switch / Wii U.
+if (CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
+    set(ENABLE_ARCHIPELAGO_DEFAULT OFF)
+else()
+    set(ENABLE_ARCHIPELAGO_DEFAULT ON)
+endif()
+option(ENABLE_ARCHIPELAGO "Build Archipelago multiworld support" ${ENABLE_ARCHIPELAGO_DEFAULT})
+if (ENABLE_ARCHIPELAGO AND CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+    message(STATUS "Archipelago is not supported on ${CMAKE_SYSTEM_NAME}; disabling")
+    set(ENABLE_ARCHIPELAGO OFF)
+endif()
 set(SKIP_XCODE_VERSION_CHECK ON)
 
 # Add compile definitions for the target
@@ -164,6 +177,16 @@ list(FILTER ALL_FILES EXCLUDE REGEX "src/overlays/ovl_ending/fox_end2_data.c")
 list(FILTER ALL_FILES EXCLUDE REGEX "src/sys/sys_timer.c")
 list(FILTER ALL_FILES EXCLUDE REGEX "src/sys/sys_fault.c")
 list(FILTER ALL_FILES EXCLUDE REGEX "src/mods/object_ram.c")
+
+# The Archipelago transport TU is built as its own C++17 target (see below); never in the executable.
+list(FILTER ALL_FILES EXCLUDE REGEX "src/port/archipelago/transport/.*")
+if (NOT ENABLE_ARCHIPELAGO)
+    # Drop the client (C++) sources; the C bridge stub and the game-side listeners (no-ops without a session) stay.
+    list(FILTER ALL_FILES EXCLUDE REGEX "src/port/archipelago/Archipelago.*\\.cpp$")
+    list(APPEND ALL_FILES "src/port/archipelago/ArchipelagoStub.cpp")
+else()
+    list(FILTER ALL_FILES EXCLUDE REGEX "src/port/archipelago/ArchipelagoStub.cpp")
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set(IOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libultraship/ios)
@@ -330,7 +353,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     find_package(Vorbis CONFIG REQUIRED)
     link_libraries(Vorbis::vorbisfile)
 	set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "$<$<BOOL:${USE_NETWORKING}>:SDL2_net::SDL2_net-static>"
         "Ogg::ogg"
         "Vorbis::vorbis"
         "Vorbis::vorbisenc"
@@ -359,7 +381,6 @@ else()
     find_package(Ogg REQUIRED)
     find_package(Vorbis REQUIRED)
  	set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "$<$<BOOL:${USE_NETWORKING}>:SDL2_net::SDL2_net>"
         "Ogg::ogg"
         "Vorbis::vorbis"
         "Vorbis::vorbisenc"
@@ -367,14 +388,59 @@ else()
 	)
 endif()
 
-if(USE_NETWORKING)
-    if(MSVC)
-        vcpkg_install_packages(sdl2-net)
+#==============================================================================#
+# Archipelago (apclientpp + wswrap + websocketpp + asio)                        #
+#==============================================================================#
+if (ENABLE_ARCHIPELAGO)
+    if (APPLE AND NOT OPENSSL_ROOT_DIR AND EXISTS /opt/local/include/openssl)
+        set(OPENSSL_ROOT_DIR /opt/local) # MacPorts
     endif()
-    find_package(SDL2_net REQUIRED)
-    include_directories(${SDL2_NET_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE SDL2_net::SDL2_net)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_NETWORKING)
+    find_package(OpenSSL REQUIRED)
+    find_package(ZLIB REQUIRED)
+
+    # websocketpp does not build under GCC's C++20 mode, so the single TU that
+    # includes apclient.hpp lives in its own C++17 static library.
+    add_library(StarshipAPTransport STATIC src/port/archipelago/transport/APTransport.cpp)
+    set_target_properties(StarshipAPTransport PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS ON
+        POSITION_INDEPENDENT_CODE ON
+    )
+    target_include_directories(StarshipAPTransport
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/port/archipelago/transport
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/apclientpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/wswrap/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/asio/asio/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/websocketpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/valijson/include
+    )
+    target_compile_definitions(StarshipAPTransport PRIVATE
+        ASIO_STANDALONE
+        $<$<PLATFORM_ID:Windows>:ASIO_NO_WIN32_LEAN_AND_MEAN;WIN32_LEAN_AND_MEAN;NOMINMAX;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_WARNINGS>
+    )
+    target_link_libraries(StarshipAPTransport PUBLIC
+        OpenSSL::SSL OpenSSL::Crypto ZLIB::ZLIB
+        $<$<PLATFORM_ID:Windows>:ws2_32;crypt32>
+    )
+    if (TARGET nlohmann_json::nlohmann_json)
+        target_link_libraries(StarshipAPTransport PRIVATE nlohmann_json::nlohmann_json)
+    else()
+        find_package(nlohmann_json QUIET)
+        if (TARGET nlohmann_json::nlohmann_json)
+            target_link_libraries(StarshipAPTransport PRIVATE nlohmann_json::nlohmann_json)
+        endif()
+    endif()
+    if (MSVC)
+        target_compile_options(StarshipAPTransport PRIVATE /bigobj /EHsc /permissive-)
+        set_target_properties(StarshipAPTransport PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        target_compile_options(StarshipAPTransport PRIVATE -pthread -Wno-deprecated-declarations)
+    endif()
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE StarshipAPTransport)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_ARCHIPELAGO=1)
 endif()
 
 option(USE_STANDALONE "Build as a standalone executable" OFF)
@@ -602,6 +668,7 @@ add_custom_command(
 	COMMENT "Copying asset yamls..."
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/config.yml" "$<TARGET_FILE_DIR:Starship>/config.yml"
 	COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets/" "$<TARGET_FILE_DIR:Starship>/assets/"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/networking/cacert.pem" "$<TARGET_FILE_DIR:Starship>/networking/cacert.pem"
 )
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
@@ -663,6 +730,7 @@ add_custom_target(CreateOSXIcons
     INSTALL(FILES ${CMAKE_BINARY_DIR}/gamecontrollerdb.txt DESTINATION ../MacOS COMPONENT Starship)
     INSTALL(FILES ${CMAKE_BINARY_DIR}/starship.o2r DESTINATION ../Resources COMPONENT Starship)
     INSTALL(FILES ${CMAKE_BINARY_DIR}/config.yml DESTINATION ../Resources COMPONENT Starship)
+    INSTALL(FILES ${CMAKE_SOURCE_DIR}/networking/cacert.pem DESTINATION ../Resources/networking COMPONENT Starship)
     INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/assets/ DESTINATION ../Resources/assets COMPONENT Starship)
 
     # Fix bundle to include and relink all dependencies
