@@ -1461,28 +1461,33 @@ void HUD_PauseScreen_Update(void) {
                 sPauseScreenIwork[0] = 1;
                 break;
 
-            case 1:
-                ret = HUD_PauseScreenInput();
-                if (ret != 0) {
-                    sPauseScreenTimer[0] = 0;
-                    if (((ret > 0) && (sPauseScreenIwork[1] == 1)) || ((ret < 0) && (sPauseScreenIwork[1] == 0))) {
-                        sPauseScreenIwork[1] ^= 1;
-                        AUDIO_PLAY_SFX(NA_SE_CURSOR, gDefaultSfxSource, 4);
+            case 1: {
+                // @port: @event: pause menu input; listeners may provide their own option set
+                CALL_CANCELLABLE_EVENT(PauseMenuInputEvent) {
+                    ret = HUD_PauseScreenInput();
+                    if (ret != 0) {
+                        sPauseScreenTimer[0] = 0;
+                        if (((ret > 0) && (sPauseScreenIwork[1] == 1)) ||
+                            ((ret < 0) && (sPauseScreenIwork[1] == 0))) {
+                            sPauseScreenIwork[1] ^= 1;
+                            AUDIO_PLAY_SFX(NA_SE_CURSOR, gDefaultSfxSource, 4);
+                        }
                     }
-                }
 
-                if (gInputPress->button & B_BUTTON) {
-                    sPauseScreenIwork[0] = 10;
-                }
-
-                if (gInputPress->button & A_BUTTON) {
-                    if (sPauseScreenIwork[1] == 0) {
+                    if (gInputPress->button & B_BUTTON) {
                         sPauseScreenIwork[0] = 10;
-                    } else {
-                        sPauseScreenIwork[0] = 2;
+                    }
+
+                    if (gInputPress->button & A_BUTTON) {
+                        if (sPauseScreenIwork[1] == 0) {
+                            sPauseScreenIwork[0] = 10;
+                        } else {
+                            sPauseScreenIwork[0] = 2;
+                        }
                     }
                 }
                 break;
+            }
 
             case 2:
                 gPlayer[0].state = PLAYERSTATE_STANDBY;
@@ -1685,6 +1690,8 @@ void HUD_PauseScreen_Update(void) {
                 Lib_TextureRect_IA8(&gMasterDisp, sLevelTitleCard[j].titleCardTex, sLevelTitleCard[j].titleCardWidth,
                                     sLevelTitleCard[j].titleCardHeight, x2, y2 + i, 1.0f, 1.0f);
 
+                // @port: @event: pause menu options; listeners may draw their own option set
+                CALL_CANCELLABLE_EVENT(PauseMenuDrawEvent, x1, y0) {
                 HUD_MsgWindowBg_Draw2(x1 - 10.0f, y0 - 4.0f, 4.7f, 2.8f);
 
                 RCP_SetupDL(&gMasterDisp, SETUPDL_76_OPTIONAL);
@@ -1725,6 +1732,7 @@ void HUD_PauseScreen_Update(void) {
                     } else {
                         Lib_TextureRect_IA8(&gMasterDisp, D_1000640, 96, 22, x1, y1, 1.0f, 1.0f);
                     }
+                }
                 }
 
                 if ((gCurrentLevel != LEVEL_VENOM_ANDROSS) && (gCurrentLevel != LEVEL_TRAINING)) {

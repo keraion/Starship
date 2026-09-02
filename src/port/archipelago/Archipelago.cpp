@@ -32,7 +32,7 @@ static const ImVec4 kColorUseful = ImVec4(0.45f, 0.6f, 0.95f, 1.0f);
 static const ImVec4 kColorTrap = ImVec4(0.95f, 0.5f, 0.45f, 1.0f);
 static const ImVec4 kColorFiller = ImVec4(0.4f, 0.85f, 0.9f, 1.0f);
 
-static constexpr int kMaxRetries = 3;
+static constexpr uint32_t kConnectTimeoutFrames = 60 * 30; // give up on a first connection after ~30 s
 static constexpr uint32_t kFlushInterval = 120;
 static constexpr uint32_t kSendInterval = 120;
 
@@ -126,6 +126,7 @@ void Archipelago::Connect() {
     }
 
     mRetries = 0;
+    mConnectFrames = 0;
     mEverConnected = false;
     mWasSlotConnected = false;
     mSynced = false;
@@ -190,6 +191,15 @@ void Archipelago::Say(const std::string& text) {
 void Archipelago::OnGameTick() {
     if (mTransport != nullptr) {
         mTransport->Poll();
+        // apclientpp retries on its own (including the wss -> ws fallback for "host:port" addresses), so
+        // individual socket errors are not fatal; only give up if the first connection never happens.
+        if (mConn == Conn::Connecting && !mEverConnected && ++mConnectFrames > kConnectTimeoutFrames) {
+            mLastError = "Could not connect to " + mServer + " (timed out after " +
+                         std::to_string(mRetries) + " attempts)";
+            mConn = Conn::Failed;
+            ArchipelagoConsole::LogError(mLastError);
+            NotifyConnection("Could not connect to " + mServer, kColorErr, 7.0f);
+        }
         if (mConn == Conn::Failed || mConn == Conn::Refused || mConn == Conn::VersionMismatch) {
             DestroyTransport();
         }
@@ -420,13 +430,9 @@ void Archipelago::OnSocketError(const std::string& msg) {
         return;
     }
     mRetries++;
-    ArchipelagoConsole::Log("Connection attempt " + std::to_string(mRetries) + " failed: " + msg, kColorWarn);
-    if (mRetries >= kMaxRetries) {
-        mLastError = "Could not connect to " + mServer + " (" + msg + ")";
-        mConn = Conn::Failed;
-        ArchipelagoConsole::LogError(mLastError);
-        NotifyConnection("Could not connect to " + mServer, kColorErr, 7.0f);
-    }
+    ArchipelagoConsole::Log("Connection attempt " + std::to_string(mRetries) + " failed: " + msg +
+                                " (retrying)",
+                            kColorWarn);
 }
 
 void Archipelago::OnRoomInfo() {

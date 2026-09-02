@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // Mission clear / medal / Venom / goal (map.c map_set_level_flags, main.c)
 
-void ApMission_PersistStats(void) {
+static void PersistRunStats(bool includeShields) {
     APSlotState* st;
     s32 i;
 
@@ -11,8 +11,10 @@ void ApMission_PersistStats(void) {
         return;
     }
     st = AP_SaveState();
-    for (i = TEAM_ID_FALCO; i <= TEAM_ID_PEPPY; i++) {
-        st->shields[i - 1] = (int16_t) gTeamShields[i];
+    if (includeShields) {
+        for (i = TEAM_ID_FALCO; i <= TEAM_ID_PEPPY; i++) {
+            st->shields[i - 1] = (int16_t) gTeamShields[i];
+        }
     }
     st->lasers = (uint8_t) gLaserStrength[0];
     st->goldRings = gGoldRingCount[0];
@@ -20,6 +22,10 @@ void ApMission_PersistStats(void) {
     st->bombs = (uint8_t) gBombCount[0];
     st->greatFoxIntact = gGreatFoxIntact;
     AP_MarkSaveDirty();
+}
+
+void ApMission_PersistStats(void) {
+    PersistRunStats(true);
 }
 
 // Medals gating Venom: received Medal items when shuffled, otherwise the medal locations we checked ourselves.
@@ -73,6 +79,14 @@ static void OnMissionClear(MissionClearEvent* event) {
     s16 loc;
 
     if (!AP_IsEnabled()) {
+        return;
+    }
+
+    if (gApPauseIgnoreRewards) {
+        // Abandoned run ("Back to Map" from the pause menu): keep consumables, discard wingman damage,
+        // register nothing.
+        gApPauseIgnoreRewards = false;
+        PersistRunStats(false);
         return;
     }
 

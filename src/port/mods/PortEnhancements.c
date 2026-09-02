@@ -486,6 +486,8 @@ void PortEnhancements_Register() {
     REGISTER_EVENT(PreVenomTransitionEvent);
     REGISTER_EVENT(VenomClearEvent);
     REGISTER_EVENT(MedalThresholdEvent);
+    REGISTER_EVENT(PauseMenuInputEvent);
+    REGISTER_EVENT(PauseMenuDrawEvent);
 
     // Register actor events
     REGISTER_EVENT(ObjectInitEvent);

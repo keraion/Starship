@@ -29,3 +29,7 @@ DEFINE_EVENT(DrawBossHealthHUDEvent);
 
 DEFINE_EVENT(DrawGlobalHUDPreEvent);
 DEFINE_EVENT(DrawGlobalHUDPostEvent);
+
+// Pause menu (HUD_PauseScreen_Update). Cancel to replace the vanilla input handling / option drawing.
+DEFINE_EVENT(PauseMenuInputEvent);
+DEFINE_EVENT(PauseMenuDrawEvent, f32 x; f32 y;);

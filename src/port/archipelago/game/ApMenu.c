@@ -44,4 +44,5 @@ void ApGame_Init(void) {
     ApMission_Init();
     ApMap_Init();
     ApMenu_Init();
+    ApPause_Init();
 }

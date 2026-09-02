@@ -89,6 +89,7 @@ class Archipelago final : public IAPTransportListener {
     std::string mLastError;
     std::string mServer;
     int mRetries = 0;
+    uint32_t mConnectFrames = 0; // frames spent trying to reach the server for the first time
     bool mEverConnected = false;
     bool mWasSlotConnected = false;
 

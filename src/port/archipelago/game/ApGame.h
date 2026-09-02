@@ -45,5 +45,9 @@ bool ApMap_CanStart(LevelId level);
 void ApMenu_Init(void);
 void ApMenu_DrawStatus(void);
 
+// ---- ApPause.c
+void ApPause_Init(void);
+extern bool gApPauseIgnoreRewards; // set by "Back to Map": the next Map_Setup_Play must not register a clear
+
 // ---- registration (called from PortEnhancements_Init)
 void ApGame_Init(void);
