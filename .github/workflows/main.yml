@@ -66,6 +66,7 @@ jobs:
           mv build/x64/Release/starship.o2r starship-release/
           mv config.yml starship-release/
           mv assets starship-release/
+          mv networking starship-release/networking
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/master/gamecontrollerdb.txt" -OutFile "starship-release/gamecontrollerdb.txt"
       - name: Upload build
         uses: actions/upload-artifact@v4

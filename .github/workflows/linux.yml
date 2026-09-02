@@ -43,6 +43,7 @@ jobs:
         run: |
           mkdir starship-release
           mv build-cmake/Starship starship-release/
+          cp -r networking starship-release/
       - name: Publish packaged artifacts
         uses: actions/upload-artifact@v4
         with:

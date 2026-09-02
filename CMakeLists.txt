@@ -38,6 +38,18 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(YAML_CPP_STATIC_DEFINE ON)
 add_compile_definitions(YAML_CPP_STATIC_DEFINE)
 
+# Archipelago multiworld support (apclientpp). Not supported on Switch / Wii U.
+if (CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
+    set(ENABLE_ARCHIPELAGO_DEFAULT OFF)
+else()
+    set(ENABLE_ARCHIPELAGO_DEFAULT ON)
+endif()
+option(ENABLE_ARCHIPELAGO "Build Archipelago multiworld support" ${ENABLE_ARCHIPELAGO_DEFAULT})
+if (ENABLE_ARCHIPELAGO AND CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+    message(STATUS "Archipelago is not supported on ${CMAKE_SYSTEM_NAME}; disabling")
+    set(ENABLE_ARCHIPELAGO OFF)
+endif()
+
 if (WIN32)
 include(cmake/automate-vcpkg.cmake)
 set(VCPKG_TRIPLET x64-windows-static)
@@ -99,17 +111,6 @@ endif()
 
 # Set game compilation version
 set(VERSION us)
-# Archipelago multiworld support (apclientpp). Not supported on Switch / Wii U.
-if (CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
-    set(ENABLE_ARCHIPELAGO_DEFAULT OFF)
-else()
-    set(ENABLE_ARCHIPELAGO_DEFAULT ON)
-endif()
-option(ENABLE_ARCHIPELAGO "Build Archipelago multiworld support" ${ENABLE_ARCHIPELAGO_DEFAULT})
-if (ENABLE_ARCHIPELAGO AND CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
-    message(STATUS "Archipelago is not supported on ${CMAKE_SYSTEM_NAME}; disabling")
-    set(ENABLE_ARCHIPELAGO OFF)
-endif()
 set(SKIP_XCODE_VERSION_CHECK ON)
 
 # Add compile definitions for the target
@@ -705,6 +706,9 @@ execute_process(COMMAND ${CURL} -sSfL https://raw.githubusercontent.com/gabomdq/
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   install(FILES "${CMAKE_BINARY_DIR}/starship.o2r" DESTINATION . COMPONENT ${PROJECT_NAME})
+  if (ENABLE_ARCHIPELAGO)
+    install(FILES "${CMAKE_SOURCE_DIR}/networking/cacert.pem" DESTINATION networking COMPONENT ${PROJECT_NAME})
+  endif()
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")

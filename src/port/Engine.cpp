@@ -406,7 +406,7 @@ void GameEngine::HandleAudioThread() {
         const int desired = AudioPlayerGetDesiredBuffered();
         if (samples_left < desired && num_audio_samples > 0) {
             const int deficit = (desired - samples_left) / (int) num_audio_samples;
-            frames_to_mix = std::min(MAX_AUDIO_FRAMES_PER_UPDATE, frames_to_mix + deficit);
+            frames_to_mix = (std::min)(MAX_AUDIO_FRAMES_PER_UPDATE, frames_to_mix + deficit);
         }
 
         s16 audio_buffer[SAMPLES_HIGH * MAX_NUM_AUDIO_CHANNELS * MAX_AUDIO_FRAMES_PER_UPDATE] = { 0 };

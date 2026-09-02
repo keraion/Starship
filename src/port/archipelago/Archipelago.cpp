@@ -313,7 +313,7 @@ bool Archipelago::EepromRead(void* dst, size_t size) {
     if (!mSessionActive) {
         return false;
     }
-    size_t n = std::min(size, APSlotFile::kEepromSize);
+    size_t n = (std::min)(size, APSlotFile::kEepromSize);
     if (!mSlot.hasEeprom) {
         std::memset(dst, 0, size);
         return false;
@@ -326,7 +326,7 @@ bool Archipelago::EepromWrite(const void* src, size_t size) {
     if (!mSessionActive) {
         return false;
     }
-    size_t n = std::min(size, APSlotFile::kEepromSize);
+    size_t n = (std::min)(size, APSlotFile::kEepromSize);
     std::memcpy(mSlot.eeprom, src, n);
     mSlot.hasEeprom = true;
     mDirty = true;
@@ -579,7 +579,7 @@ void Archipelago::OnItemsReceived(const std::vector<APNetItem>& items) {
         if (it.index < 0 || (uint32_t) it.index < mSlot.receivedItemCount) {
             continue;
         }
-        maxIndex = std::max(maxIndex, (uint32_t) it.index + 1);
+        maxIndex = (std::max)(maxIndex, (uint32_t) it.index + 1);
         const char* name = (it.item > 0 && it.item < AP_ITEM_MAX) ? gApItemNames[it.item] : "Unknown item";
         std::string from = mTransport ? mTransport->GetPlayerAlias(it.player) : "";
         ArchipelagoConsole::LogLine({ { "Received ", kColorInfo },
