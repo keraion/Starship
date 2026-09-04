@@ -43,6 +43,21 @@ jobs:
         path: starship.o2r
         retention-days: 1
 
+package-apworld:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check generated Archipelago IDs are up to date
+        run: python3 tools/ap_gen_ids.py --check
+      - name: Package apworld
+        run: python3 tools/ap_package_apworld.py star_fox_64_ss.apworld
+      - name: Upload apworld
+        uses: actions/upload-artifact@v4
+        with:
+          name: star_fox_64_ss.apworld
+          path: star_fox_64_ss.apworld
+          retention-days: 1
+
   build-windows:
     needs: generate-port-o2r
     runs-on: windows-2022

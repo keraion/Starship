@@ -4,6 +4,7 @@
 #ifdef ENABLE_ARCHIPELAGO
 #include "port/archipelago/ArchipelagoWindow.h"
 #include "port/archipelago/ArchipelagoConsole.h"
+#include "port/archipelago/ArchipelagoTracker.h"
 #endif
 
 #include <spdlog/spdlog.h>
@@ -40,6 +41,7 @@ std::shared_ptr<AdvancedResolutionSettings::AdvancedResolutionSettingsWindow> mA
 #ifdef ENABLE_ARCHIPELAGO
 std::shared_ptr<ArchipelagoWindow> mArchipelagoWindow;
 std::shared_ptr<ArchipelagoConsole::Window> mArchipelagoConsoleWindow;
+std::shared_ptr<Ship::GuiWindow> mArchipelagoTrackerWindow;
 #endif
 
 void SetupGuiElements() {
@@ -92,6 +94,8 @@ void SetupGuiElements() {
     gui->AddGuiWindow(mArchipelagoWindow);
     mArchipelagoConsoleWindow = std::make_shared<ArchipelagoConsole::Window>("gArchipelago.ConsoleOpen", "Archipelago Console");
     gui->AddGuiWindow(mArchipelagoConsoleWindow);
+    mArchipelagoTrackerWindow = std::make_shared<ArchipelagoTrackerWindow>("gArchipelago.TrackerOpen", "Archipelago Tracker");
+    gui->AddGuiWindow(mArchipelagoTrackerWindow);
 #endif
 }
 
@@ -107,6 +111,7 @@ void Destroy() {
 #ifdef ENABLE_ARCHIPELAGO
     mArchipelagoWindow = nullptr;
     mArchipelagoConsoleWindow = nullptr;
+    mArchipelagoTrackerWindow = nullptr;
 #endif
 }
 

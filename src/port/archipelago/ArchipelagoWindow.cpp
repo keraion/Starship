@@ -10,6 +10,7 @@
 namespace GameUI {
 extern std::shared_ptr<ArchipelagoWindow> mArchipelagoWindow;
 extern std::shared_ptr<ArchipelagoConsole::Window> mArchipelagoConsoleWindow;
+extern std::shared_ptr<Ship::GuiWindow> mArchipelagoTrackerWindow;
 } // namespace GameUI
 
 static ImVec4 StatusColor(Archipelago::Conn conn, bool synced) {
@@ -139,6 +140,10 @@ void ArchipelagoWindow::DrawElement() {
         UIWidgets::WindowButton("Console", "gArchipelago.ConsoleOpen", GameUI::mArchipelagoConsoleWindow,
                                 { .tooltip = "Server messages and chat" });
     }
+    if (GameUI::mArchipelagoTrackerWindow != nullptr) {
+        UIWidgets::WindowButton("Tracker", "gArchipelago.TrackerOpen", GameUI::mArchipelagoTrackerWindow,
+                                { .tooltip = "Locations currently in logic" });
+    }
     UIWidgets::CVarCheckbox("Notify on items", "gArchipelago.Notify.Items", { .defaultValue = true });
     UIWidgets::CVarCheckbox("Notify on connection changes", "gArchipelago.Notify.Connection",
                             { .defaultValue = true });
@@ -149,6 +154,7 @@ void ArchipelagoWindow::DrawElement() {
 
 void DrawArchipelagoMenu() {
     if (UIWidgets::BeginMenu("Archipelago")) {
+        ImGui::Dummy(ImVec2(260.0f, 0.0f)); // menus size to their content; keep this one readable
         if (GameUI::mArchipelagoWindow != nullptr) {
             UIWidgets::WindowButton("Connection", "gArchipelago.WindowOpen", GameUI::mArchipelagoWindow,
                                     { .tooltip = "Server / slot settings and connection status" });
@@ -156,6 +162,10 @@ void DrawArchipelagoMenu() {
         if (GameUI::mArchipelagoConsoleWindow != nullptr) {
             UIWidgets::WindowButton("Console", "gArchipelago.ConsoleOpen", GameUI::mArchipelagoConsoleWindow,
                                     { .tooltip = "Server messages and chat" });
+        }
+        if (GameUI::mArchipelagoTrackerWindow != nullptr) {
+            UIWidgets::WindowButton("Tracker", "gArchipelago.TrackerOpen", GameUI::mArchipelagoTrackerWindow,
+                                    { .tooltip = "Locations currently in logic" });
         }
         if (Archipelago::Instance != nullptr) {
             ImGui::TextColored(StatusColor(Archipelago::Instance->GetConn(), Archipelago::Instance->IsReady()), "%s",

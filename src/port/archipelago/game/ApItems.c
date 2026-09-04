@@ -27,6 +27,58 @@ static void OnItemDrop(ItemDropEvent* event) {
     ClearTag(event->item);
 }
 
+// Some locations are items dropped by a scripted enemy (e.g. Corneria's city-center Silver Ring); the world
+// data keys them by the dropping actor's index in the level object list. Remember that index per actor slot.
+static s16 sApActorObjectIndex[ARRAY_COUNT(gActors)];
+static s16 sApActorObjectId[ARRAY_COUNT(gActors)]; // objInit->id, used to detect a reused slot
+
+static s32 ActorSlot(Actor* actor) {
+    s32 slot = (s32) (actor - gActors);
+    if ((slot < 0) || (slot >= ARRAY_COUNT(gActors))) {
+        return -1;
+    }
+    return slot;
+}
+
+static void OnActorStaticLoad(ActorStaticLoadEvent* event) {
+    s32 slot = ActorSlot(event->actor);
+
+    if (slot < 0) {
+        return;
+    }
+    sApActorObjectIndex[slot] = (event->objectIndex >= 0) ? (s16) event->objectIndex : -1;
+    sApActorObjectId[slot] = event->objInit->id;
+}
+
+static bool TagItem(Item* item, s16 loc) {
+    s32 slot = ItemSlot(item);
+
+    if ((slot < 0) || (loc <= 0) || AP_IsLocationChecked(loc)) {
+        return false;
+    }
+    // Replace the pickup with an AP orb. The silver ring info gives us the hitbox; update/draw are overridden below.
+    item->obj.id = OBJ_ITEM_SILVER_RING;
+    Object_SetInfo(&item->info, item->obj.id);
+    sApItemLocation[slot] = loc;
+    return true;
+}
+
+static void OnActorItemDrop(ActorItemDropEvent* event) {
+    Actor* actor = event->actor;
+    s32 slot = ActorSlot(actor);
+    s16 expectedId;
+
+    if ((slot < 0) || !AP_IsEnabled() || (gLevelPhase != 0) || gVersusMode || (sApActorObjectIndex[slot] < 0)) {
+        return;
+    }
+    // A slot can be reused by an actor spawned without an ObjectInit; only trust the index if the ids still agree.
+    expectedId = (actor->obj.id == OBJ_ACTOR_EVENT) ? (s16) (actor->aiType + ACTOR_EVENT_ID) : actor->obj.id;
+    if (sApActorObjectId[slot] != expectedId) {
+        return;
+    }
+    TagItem(event->item, ApTables_GetStaticLocation(gCurrentLevel, sApActorObjectIndex[slot]));
+}
+
 static void OnItemStaticLoad(ItemStaticLoadEvent* event) {
     Item* item = event->item;
     s32 slot = ItemSlot(item);
@@ -52,11 +104,8 @@ static void OnItemStaticLoad(ItemStaticLoadEvent* event) {
         return; // vanilla checkpoint ring
     }
 
-    if (!AP_IsLocationChecked(loc)) {
-        // Replace the pickup with an AP orb. The silver ring info gives us the hitbox; update/draw are overridden below.
-        item->obj.id = OBJ_ITEM_SILVER_RING;
-        Object_SetInfo(&item->info, item->obj.id);
-        sApItemLocation[slot] = loc;
+    if (TagItem(item, loc)) {
+        // unchecked location: now an AP orb
     } else if (isCheckpoint && !AP_HasItem(ApTables_CheckpointItem(loc))) {
         // Location already sent but the checkpoint item hasn't been received: no ring.
         item->obj.status = OBJ_FREE;
@@ -239,8 +288,11 @@ static void OnPlayerUpdatePost(PlayerPostUpdateEvent* event) {
 }
 
 void ApItems_Init(void) {
+    memset(sApActorObjectIndex, 0xFF, sizeof(sApActorObjectIndex)); // -1: no object index known
     REGISTER_LISTENER(ItemDropEvent, (EventCallback) OnItemDrop, EVENT_PRIORITY_LOW);
     REGISTER_LISTENER(ItemStaticLoadEvent, (EventCallback) OnItemStaticLoad, EVENT_PRIORITY_NORMAL);
+    REGISTER_LISTENER(ActorStaticLoadEvent, (EventCallback) OnActorStaticLoad, EVENT_PRIORITY_NORMAL);
+    REGISTER_LISTENER(ActorItemDropEvent, (EventCallback) OnActorItemDrop, EVENT_PRIORITY_NORMAL);
     REGISTER_LISTENER(ObjectUpdateEvent, (EventCallback) OnItemUpdate, EVENT_PRIORITY_LOW);
     REGISTER_LISTENER(ObjectDrawPostSetupEvent, (EventCallback) OnItemDraw, EVENT_PRIORITY_LOW);
     REGISTER_LISTENER(PlayerPostUpdateEvent, (EventCallback) OnPlayerUpdatePost, EVENT_PRIORITY_NORMAL);

@@ -1,4 +1,5 @@
 #include "ApGame.h"
+#include "ApLogic.h"
 #include "assets/ast_map.h"
 #include <stdio.h>
 #include <string.h>
@@ -45,7 +46,6 @@ extern f32 D_menu_801CDA1C;
 void Map_PositionCursor(void);
 void Map_SetState_ZoomPlanet(void);
 void Map_CurrentLevel_Setup(void);
-s32 Map_GetPathId(PlanetId start, PlanetId end);
 bool Map_Input_CursorY(void);
 void Map_LevelStart_AudioSpecSetup(LevelId level);
 void Map_PlayLevel(void);
@@ -76,7 +76,7 @@ static bool HasLevelItem(LevelId level) {
 }
 
 static bool HasPath(PlanetId from, PlanetId to) {
-    s32 pathId;
+    s16 item;
 
     if ((to == PLANET_VENOM) && (ApMission_MedalCount() < AP_GetOption(AP_OPTION_REQUIRED_MEDALS))) {
         switch (AP_GetOption(AP_OPTION_VICTORY_CONDITION)) {
@@ -93,11 +93,11 @@ static bool HasPath(PlanetId from, PlanetId to) {
     if (!IsPathsMode()) {
         return true;
     }
-    pathId = Map_GetPathId(from, to);
-    if ((pathId < 0) || (pathId >= 24)) {
+    item = ApTables_PathItem(from, to);
+    if (item <= 0) {
         return false;
     }
-    return AP_HasItem((uint16_t) gApTablesPathItem[pathId]);
+    return AP_HasItem((uint16_t) item);
 }
 
 static void WalkPaths(PlanetId from, bool* access) {
@@ -188,6 +188,7 @@ static void RefreshTracker(void) {
     APSlotState* st = AP_SaveState();
 
     ComputeAccess();
+    ApLogic_Update();
 
     for (i = 0; i < 24; i++) {
         PlanetPath* path = &sPaths[i];
@@ -712,6 +713,23 @@ static void OnMapMenuDraw(MapMenuDrawEvent* event) {
 // ---------------------------------------------------------------------------
 // HUD: medal counter (map.c map_draw_medals)
 
+// The 3D medal's skin (aMapMedalTex) is a 32x64 CI8 sheet holding one half of the medal; the display
+// list mirrors it to make the full face. Do the same here: draw the half, then its mirror image.
+static void DrawMedalIcon(f32 x, f32 y, f32 scale) {
+    f32 halfW = 32.0f * scale;
+    f32 h = 64.0f * scale;
+    s32 dsdx = (s32) (1.0f / scale * 1024.0f);
+
+    gDPLoadTLUT_pal256(gMasterDisp++, D_MAP_601DAF0);
+    gDPLoadTextureBlock(gMasterDisp++, aMapMedalTex, G_IM_FMT_CI, G_IM_SIZ_8b, 32, 64, 0, G_TX_NOMIRROR | G_TX_CLAMP,
+                        G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    gSPWideTextureRectangle(gMasterDisp++, (s32) (x * 4.0f), (s32) (y * 4.0f), (s32) ((x + halfW) * 4.0f),
+                            (s32) ((y + h) * 4.0f), G_TX_RENDERTILE, 0, 0, dsdx, dsdx);
+    gSPWideTextureRectangle(gMasterDisp++, (s32) ((x + halfW) * 4.0f), (s32) (y * 4.0f),
+                            (s32) ((x + 2.0f * halfW) * 4.0f), (s32) ((y + h) * 4.0f), G_TX_RENDERTILE, 32 * 32, 0,
+                            (u16) (s32) (-dsdx), dsdx);
+}
+
 static void OnMapHudDraw(MapHudDrawEvent* event) {
     s32 have;
     s32 required;
@@ -730,13 +748,50 @@ static void OnMapHudDraw(MapHudDrawEvent* event) {
     }
     have = ApMission_MedalCount();
     if (required > 0) {
-        sprintf(buf, "MEDALS %d OF %d", have, required);
+        sprintf(buf, "%d OF %d", have, required);
     } else {
-        sprintf(buf, "MEDALS %d", have);
+        sprintf(buf, "%d", have);
     }
+    // Top-right, under the lives counter, laid out like it: icon then count.
+    RCP_SetupDL(&gMasterDisp, SETUPDL_85_OPTIONAL);
+    gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 255, 255);
+    DrawMedalIcon(254.0f, 34.0f, 0.25f);
     RCP_SetupDL(&gMasterDisp, SETUPDL_83_OPTIONAL);
     gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 0, 255);
-    Graphics_DisplaySmallText(24, 36, 1.0f, 1.0f, buf);
+    Graphics_DisplaySmallText(274, 38, 1.0f, 1.0f, buf);
+}
+
+// Unchecked locations that are in logic on the selected planet (tracker).
+static s32 InLogicAtPlanet(PlanetId planet) {
+    s32 count = 0;
+    s32 loc;
+
+    for (loc = 1; loc < AP_LOCATION_MAX; loc++) {
+        s32 region = ApLogic_LocationRegion((uint16_t) loc);
+        if ((region < 0) || (gApRegionPlanet[region] != planet)) {
+            continue;
+        }
+        if (!AP_IsLocationChecked((uint16_t) loc) && ApLogic_LocationInLogic((uint16_t) loc)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static void OnMapTrackerDraw(MapHudDrawEvent* event) {
+    char buf[32];
+
+    (void) event;
+    if (!AP_IsEnabled()) {
+        return;
+    }
+    if ((sMapState != MAP_IDLE) && (sMapState != MAP_PATH_CHANGE)) {
+        return;
+    }
+    sprintf(buf, "CHECKS: %d", InLogicAtPlanet(sCurrentPlanetId));
+    RCP_SetupDL(&gMasterDisp, SETUPDL_83_OPTIONAL);
+    gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 0, 255);
+    Graphics_DisplaySmallText(296 - Graphics_GetSmallTextWidth(buf), 54, 1.0f, 1.0f, buf);
 }
 
 void ApMap_Init(void) {
@@ -746,4 +801,5 @@ void ApMap_Init(void) {
     REGISTER_LISTENER(MapMenuInputEvent, (EventCallback) OnMapMenuInput, EVENT_PRIORITY_NORMAL);
     REGISTER_LISTENER(MapMenuDrawEvent, (EventCallback) OnMapMenuDraw, EVENT_PRIORITY_NORMAL);
     REGISTER_LISTENER(MapHudDrawEvent, (EventCallback) OnMapHudDraw, EVENT_PRIORITY_NORMAL);
+    REGISTER_LISTENER(MapHudDrawEvent, (EventCallback) OnMapTrackerDraw, EVENT_PRIORITY_NORMAL);
 }
