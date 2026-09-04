@@ -238,6 +238,22 @@ void Sprite_Load(Sprite* this, ObjectInit* objInit) {
     Object_SetInfo(&this->info, this->obj.id);
 }
 
+// @port: index of an ObjectInit inside the current level object list, or -1 if it isn't part of it.
+static s32 Object_LevelObjectIndex(ObjectInit* objInit) {
+    uintptr_t base = (uintptr_t) gLevelObjects;
+    uintptr_t ptr = (uintptr_t) objInit;
+    uintptr_t index;
+
+    if ((gLevelObjects == NULL) || (ptr < base) || (((ptr - base) % sizeof(ObjectInit)) != 0)) {
+        return -1;
+    }
+    index = (ptr - base) / sizeof(ObjectInit);
+    if (index >= 10000) {
+        return -1;
+    }
+    return (s32) index;
+}
+
 void Actor_Load(Actor* this, ObjectInit* objInit) {
     Actor_Initialize(this);
     this->obj.status = OBJ_INIT;
@@ -250,6 +266,8 @@ void Actor_Load(Actor* this, ObjectInit* objInit) {
     this->obj.rot.z = objInit->rot.z;
     this->obj.id = objInit->id;
     Object_SetInfo(&this->info, this->obj.id);
+    // @port: @event: actor spawned from an ObjectInit
+    CALL_EVENT(ActorStaticLoadEvent, this, objInit, Object_LevelObjectIndex(objInit));
 }
 
 void Boss_Load(Boss* this, ObjectInit* objInit) {
@@ -430,6 +448,8 @@ void ActorEvent_Load(ActorEvent* this, ObjectInit* objInit, s32 index) {
     Matrix_MultVec3fNoTranslate(gCalcMatrix, &src, &this->vwork[28]);
     this->iwork[9] = gFormationLeaderIndex;
     gPrevEventActorIndex = index;
+    // @port: @event: event actor spawned from an ObjectInit
+    CALL_EVENT(ActorStaticLoadEvent, (Actor*) this, objInit, Object_LevelObjectIndex(objInit));
     Actor_Update(this);
 }
 
@@ -1745,6 +1765,8 @@ void func_enmy_800660F0(Actor* this) {
                     }
                 }
             }
+            // @port: @event: item dropped by an actor
+            CALL_EVENT(ActorItemDropEvent, this, item);
 
             break;
         }

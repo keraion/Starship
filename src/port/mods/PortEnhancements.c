@@ -473,6 +473,8 @@ void PortEnhancements_Register() {
     // Register item events
     REGISTER_EVENT(ItemDropEvent);
     REGISTER_EVENT(ItemStaticLoadEvent);
+    REGISTER_EVENT(ActorStaticLoadEvent);
+    REGISTER_EVENT(ActorItemDropEvent);
 
     // Register map / menu events
     REGISTER_EVENT(MapSetupPreEvent);
