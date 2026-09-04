@@ -1,0 +1,158 @@
+name: Player{NUMBER}
+game: Star Fox 64
+Star Fox 64:
+
+  # When you die, everyone who enabled death link dies. Of course, the reverse is true too.
+  deathlink: false
+
+  # Enable Ring Link for use with games that support it. Incoming rings are converted to the current level's Hit counter.
+  ringlink: false
+
+  # Choose your victory condition.
+  # Andross or Robot Andross - Defeat either Andross or Robot Andross
+  # Andross and Robot Andross - Defeat both Andross and Robot Andross
+  # Andross - Defeat Andross in Venom 2
+  # You can use the following numbers or names:
+  # 0 or andross_or_robot_andross
+  # 1 or andross_and_robot_andross
+  # 2 or andross
+  victory_condition: andross_or_robot_andross
+
+  # Require a certain number of medals before you can enter Venom 2.
+  # The same requirment will apply for Venom 1 if your victory condition is 'Andross or Robot Andross'
+  # Minimum value is: 0
+  # Maximum value is: 15
+  required_medals: 0
+
+  # Completing a level a certain way will give a random item.
+  # Choose what type of level access item gets added to the pool.
+  # 
+  # Shuffle Levels - You will receive levels as items which will allow you to select that level at any time.
+  # Shuffle Paths - You will receive paths as items which will allow you to take that path to other levels.
+  # You can use the following numbers or names:
+  # 0 or shuffle_levels
+  # 1 or shuffle_paths
+  level_access: shuffle_levels
+
+  # If Level Access is 'Shuffle Levels', shuffle which level you start with.
+  # You normally start with Corneria.
+  shuffle_starting_level: false
+
+  # Shuffle the medals awarded by reaching a certain number of Hits in each level.
+  # Earning a medal will give a random item, and you will visually see the medal on the map to indicate that you've completed the check.
+  # 
+  # Note: Medals are very challenging in vanilla.
+  # Unless you know what you're doing, it is recommended to lower the score needed for each level using their options.
+  shuffle_medals: false
+
+  # Shuffle checkpoints rings for the levels that have them.
+  # You will not be able to use the checkpoint ring in a level until you receive the item for it.
+  shuffle_checkpoints: false
+
+  # Getting 'Mission Accomplished' on any level will also count as getting 'Mission Complete' for that level.
+  accomplished_sends_complete: false
+
+  # Randomize the radio dialog.
+  # You can use the following numbers or names:
+  # 0 or off
+  # 1 or on
+  # 2 or on_including_training
+  radio_rando: on
+
+  # Set the color of your engine's glow.
+  # You can use the following numbers or names:
+  # 0 or default
+  # 1 or rainbow
+  # 2 or red
+  # 3 or deep_pink
+  # 4 or magenta
+  # 5 or electric_indigo
+  # 6 or blue
+  # 7 or dodger_blue
+  # 8 or aqua
+  # 9 or spring_green
+  # 10 or lime
+  # 11 or chartreuse
+  # 12 or yellow
+  # 13 or dark_orange
+  engine_glow: default
+
+  # Set the number of lives (Arwings) you start with and reset to after a game over.
+  # Minimum value is: 0
+  # Maximum value is: 99
+  default_lives: 2
+
+  # Set the score required to earn the medal on Corneria.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_corneria: 150
+
+  # Set the score required to earn the medal on Meteo.
+  # Minimum value is: 0
+  # Maximum value is: 200
+  medal_meteo: 200
+
+  # Set the score required to earn the medal on Sector Y.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_sector_y: 150
+
+  # Set the score required to earn the medal on Katina.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_katina: 150
+
+  # Set the score required to earn the medal on Fortuna.
+  # Minimum value is: 0
+  # Maximum value is: 50
+  medal_fortuna: 50
+
+  # Set the score required to earn the medal on Aquas.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_aquas: 150
+
+  # Set the score required to earn the medal on Solar.
+  # Minimum value is: 0
+  # Maximum value is: 100
+  medal_solar: 100
+
+  # Set the score required to earn the medal on Sector X.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_sector_x: 150
+
+  # Set the score required to earn the medal on Zoness.
+  # Minimum value is: 0
+  # Maximum value is: 250
+  medal_zoness: 250
+
+  # Set the score required to earn the medal on Titania.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_titania: 150
+
+  # Set the score required to earn the medal on Sector Z.
+  # Minimum value is: 0
+  # Maximum value is: 100
+  medal_sector_z: 100
+
+  # Set the score required to earn the medal on Macbeth.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_macbeth: 150
+
+  # Set the score required to earn the medal on Area 6.
+  # Minimum value is: 0
+  # Maximum value is: 300
+  medal_area_6: 300
+
+  # Set the score required to earn the medal on Bolse.
+  # Minimum value is: 0
+  # Maximum value is: 150
+  medal_bolse: 150
+
+  # Set the score required to earn the medal on Venom.
+  # Minimum value is: 0
+  # Maximum value is: 200
+  medal_venom: 200
