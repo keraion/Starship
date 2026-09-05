@@ -52,6 +52,10 @@ class Archipelago final : public IAPTransportListener {
     void MarkStateChanged() { mStateChanged = true; }
     bool TakeStateChanged();
     bool GetScouted(uint16_t location, int64_t* item, int* player, unsigned* flags) const;
+    // True when the server tracks this location for our slot. The compiled logic also contains event
+    // locations (unshuffled medals or checkpoints, the level/path items the seed grants outright); the
+    // server never lists those, so they can never be checked and must not be shown as outstanding.
+    bool IsRealLocation(uint16_t id) const;
     bool EepromRead(void* dst, size_t size);
     bool EepromWrite(const void* src, size_t size);
 

@@ -23,6 +23,9 @@ void ArchipelagoTrackerWindow::DrawElement() {
     int total = 0;
     int checkedTotal = 0;
     for (uint16_t loc = 1; loc < AP_LOCATION_MAX; loc++) {
+        if (!ap->IsRealLocation(loc)) {
+            continue;
+        }
         if (ApLogic_LocationRegion(loc) >= 0 && AP_IsLocationChecked(loc)) {
             checkedTotal++;
         }
@@ -37,6 +40,12 @@ void ArchipelagoTrackerWindow::DrawElement() {
         std::vector<uint16_t> checked;
         for (uint16_t loc = 1; loc < AP_LOCATION_MAX; loc++) {
             if (ApLogic_LocationRegion(loc) != region) {
+                continue;
+            }
+            // Skip event locations: they are in the compiled logic but the server does not track them,
+            // so they can never be checked and would sit in the list forever (an unshuffled checkpoint
+            // stays a vanilla ring, so nothing ever calls AP_CheckLocation for it).
+            if (!ap->IsRealLocation(loc)) {
                 continue;
             }
             if (AP_IsLocationChecked(loc)) {

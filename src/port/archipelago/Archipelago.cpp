@@ -178,6 +178,7 @@ void Archipelago::EndSession() {
         mSessionActive = false;
         mReceived.clear();
         mServerChecked.clear();
+        mServerLocations.clear();
         mScouted.clear();
         mSlot = APSlotFile();
         mDeathLink = false;
@@ -332,6 +333,13 @@ bool Archipelago::GetScouted(uint16_t location, int64_t* item, int* player, unsi
     if (player) *player = it->second.player;
     if (flags) *flags = it->second.flags;
     return true;
+}
+
+bool Archipelago::IsRealLocation(uint16_t id) const {
+    if (mServerLocations.empty()) {
+        return true; // no slot data yet: better to show everything than nothing
+    }
+    return mServerLocations.count((int64_t) id) != 0;
 }
 
 bool Archipelago::EepromRead(void* dst, size_t size) {
