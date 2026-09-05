@@ -1,4 +1,5 @@
 #include <libultraship/bridge.h>
+#include <spdlog/spdlog.h>
 
 #include <vector>
 #include <map>
@@ -164,6 +165,10 @@ struct Recording {
 };
 
 bool is_recording;
+// What StartRecord decided for this frame, and how many ShouldInterpolateFrame(false) scopes are
+// currently open. Callers nest those scopes, so suppression has to be counted rather than assigned.
+bool frame_recording_enabled;
+int interpolation_suppress_depth;
 vector<Path*> current_path;
 uint32_t camera_epoch;
 uint32_t previous_camera_epoch;
@@ -414,9 +419,21 @@ unordered_map<Mtx*, MtxF> FrameInterpolation_Interpolate(float step) {
 
 bool camera_interpolation = true;
 
+// Callers use this as a scoped "skip interpolation across this section" guard, and those scopes nest
+// (Display_Update wraps the whole object draw in one when the camera jumps, and fox_bg / fox_effect /
+// fox_edisplay open their own inside it). Assigning is_recording directly let an inner (true) re-enable
+// recording while an outer scope was still suppressed: every RecordOpenChild in between had been
+// skipped, but the matching RecordCloseChild then ran, popping current_path until it underflowed and
+// RecordOpenChild dereferenced back() on an empty vector. Counting the depth keeps the outer scope
+// suppressed until it actually closes.
 void FrameInterpolation_ShouldInterpolateFrame(bool shouldInterpolate) {
     // camera_interpolation = shouldInterpolate;
-    is_recording = shouldInterpolate;
+    if (!shouldInterpolate) {
+        interpolation_suppress_depth++;
+    } else if (interpolation_suppress_depth > 0) {
+        interpolation_suppress_depth--;
+    }
+    is_recording = frame_recording_enabled && (interpolation_suppress_depth == 0);
 }
 
 void FrameInterpolation_StartRecord(void) {
@@ -424,6 +441,8 @@ void FrameInterpolation_StartRecord(void) {
     current_recording = {};
     current_path.clear();
     current_path.push_back(&current_recording.root_path);
+    interpolation_suppress_depth = 0;
+    frame_recording_enabled = false;
     if (!camera_interpolation) {
         // default to interpolating
         camera_interpolation = true;
@@ -431,18 +450,28 @@ void FrameInterpolation_StartRecord(void) {
         return;
     }
     if (GameEngine::GetInterpolationFPS() != 20) {
-        is_recording = true;
+        frame_recording_enabled = true;
     }
+    is_recording = frame_recording_enabled;
 }
 
 void FrameInterpolation_StopRecord(void) {
     previous_camera_epoch = camera_epoch;
+    frame_recording_enabled = false;
     is_recording = false;
 }
 
 void FrameInterpolation_RecordOpenChild(const void* a, int b) {
     if (!is_recording)
         return;
+    if (current_path.empty()) {
+        // Underflowed: some draw path closed more children than it opened this frame. back() here is
+        // UB and segfaults in Object_DrawAll. Recover by restarting from the root and report the key,
+        // which is often a string literal naming the draw routine.
+        SPDLOG_ERROR("[FrameInterpolation] current_path underflow at OpenChild(key={}, {}); recovering",
+                     a, b);
+        current_path.push_back(&current_recording.root_path);
+    }
     label key = { a, b };
     auto& m = current_path.back()->children[key];
     append(Op::OpenChild).open_child = { key, m.size() };
@@ -455,6 +484,12 @@ void FrameInterpolation_RecordCloseChild(void) {
     // append(Op::CloseChild);
     if (has_inv_actor_mtx && current_path.size() == inv_actor_mtx_path_index) {
         has_inv_actor_mtx = false;
+    }
+    if (current_path.size() <= 1) {
+        // Popping the root is what leaves the next OpenChild with an empty path. This is the actual
+        // offender: whoever called us has an unmatched CloseChild.
+        SPDLOG_ERROR("[FrameInterpolation] unmatched CloseChild (would pop the root); ignoring");
+        return;
     }
     current_path.pop_back();
 }
