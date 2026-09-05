@@ -140,12 +140,6 @@ CI runs `tools/ap_gen_ids.py --check` and packages the world with
 compiled logic against the Python rules on random option / item sets (needs an
 Archipelago checkout, see `apworld/README.md`).
 
-### Testing on Windows from WSL
-
-`docs/WSL_WINDOWS_TESTING.md` describes the mirror-and-build loop used to run
-the native Windows build while developing in WSL, and what to copy so the
-Windows executable joins the same seed.
-
 ## Code map
 
 | Path | Purpose |
