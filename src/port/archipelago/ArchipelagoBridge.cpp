@@ -53,6 +53,19 @@ void AP_GoalCompleted(void) {
     }
 }
 
+uint32_t AP_GetSeedHash(void) {
+    if (!AP_IsEnabled()) {
+        return 0;
+    }
+    const APSlotFile::Key& key = Archipelago::Instance->Slot().GetKey();
+    std::string ident = key.seed + "/" + std::to_string(key.team) + "/" + std::to_string(key.slot);
+    uint32_t h = 2166136261u;
+    for (unsigned char c : ident) {
+        h = (h ^ c) * 16777619u;
+    }
+    return h != 0 ? h : 1u;
+}
+
 APSlotState* AP_SaveState(void) {
     if (!AP_IsEnabled()) {
         return &sInactiveState;

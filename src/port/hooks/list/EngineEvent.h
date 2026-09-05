@@ -21,6 +21,13 @@ DEFINE_EVENT(DrawBoostGaugeHUDEvent);
 DEFINE_EVENT(DrawBombCounterHUDEvent);
 DEFINE_EVENT(DrawIncomingMsgHUDEvent);
 DEFINE_EVENT(PreSetupRadioMsgEvent, s32* radioRedBox;);
+
+// Fired at the start of Radio_PlayMessage with the caller's message pointer (asset path) and portrait
+// character; listeners may replace `msg` (Archipelago radio shuffle).
+DEFINE_EVENT(RadioMessageEvent,
+    u16* msg;
+    s32 character;
+);
 DEFINE_EVENT(DrawGoldRingsHUDEvent);
 DEFINE_EVENT(DrawLivesCounterHUDEvent);
 DEFINE_EVENT(DrawTrainingRingPassCountHUDEvent);

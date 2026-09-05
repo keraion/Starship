@@ -74,6 +74,11 @@ The **Archipelago** menu also opens two more windows:
 - **Items**: level / path unlocks and checkpoints are applied on the map,
   consumables (laser upgrades, rings, stars, bombs, extra Arwings) are granted
   while flying. Received items are announced in the corner of the screen.
+- **Radio**: with the seed's *Radio Rando* option on, every radio line is swapped
+  for another one from the game (training lines only with
+  *on_including_training*). The portrait stays the original speaker's; the text
+  and voice come from the substituted line. The shuffle is fixed per seed and
+  slot, so the same line always maps to the same replacement.
 - **Venom**: Bolse and Area 6 return to the map instead of chaining into Venom;
   Venom is selected from the map like any other planet (Area 6 route enters
   Venom 2) once you hold the required number of medals. The ending plays only
@@ -81,8 +86,8 @@ The **Archipelago** menu also opens two more windows:
 
 ## Not supported yet
 
-DeathLink and RingLink, radio message shuffle, the engine glow and AP logo
-models of the ROM hack, and the world's trap / Extra Arwing / cameo options.
+DeathLink and RingLink, the engine glow and AP logo models of the ROM hack, and
+the world's trap / Extra Arwing / cameo options.
 Cosmetic shuffles belong in Starship's own enhancements rather than the client.
 
 ## Console commands (developer console)
@@ -146,6 +151,7 @@ Windows executable joins the same seed.
 | `src/port/archipelago/game/ApMission.c` | mission clear / medal / Venom locations, goal, run stats |
 | `src/port/archipelago/game/ApMap.c` | map navigation, path and planet tracker, heal menu, HUD |
 | `src/port/archipelago/game/ApMenu.c`, `ApPause.c` | main menu gating and the pause menu |
+| `src/port/archipelago/game/ApRadio.c` | seeded radio message shuffle (pool ported from the ROM hack) |
 | `src/port/archipelago/game/ApTables.c`, `ApLogic.*` | generated tables and compiled logic |
 | `src/port/hooks/list/MapEvent.h`, `ItemEvent.h`, `EngineEvent.h` | events fired from the decompiled map, menu, item and pause code |
 | `apworld/star_fox_64_ss/` | the Archipelago world itself |

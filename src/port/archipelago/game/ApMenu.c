@@ -45,4 +45,5 @@ void ApGame_Init(void) {
     ApMap_Init();
     ApMenu_Init();
     ApPause_Init();
+    ApRadio_Init();
 }

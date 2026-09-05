@@ -47,6 +47,9 @@ void ApMenu_DrawStatus(void);
 
 // ---- ApPause.c
 void ApPause_Init(void);
+
+// ApRadio.c: seeded shuffle of the radio dialogue (Radio Rando option)
+void ApRadio_Init(void);
 extern bool gApPauseIgnoreRewards; // set by "Back to Map": the next Map_Setup_Play must not register a clear
 
 // ---- registration (called from PortEnhancements_Init)

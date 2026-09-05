@@ -63,6 +63,7 @@ void AP_CheckLocation(uint16_t locationId); // sets the bit, marks dirty, queues
 void AP_GoalCompleted(void);
 
 APSlotState* AP_SaveState(void); // never NULL
+uint32_t AP_GetSeedHash(void);   // stable per seed/team/slot (FNV-1a), 0 when no session is active
 void AP_MarkSaveDirty(void);
 bool AP_TakeStateChanged(void); // true once after items/locations/options changed ("map needs recompute")
 bool AP_GetScoutedItem(uint16_t locationId, int64_t* outItem, int* outPlayer, unsigned* outFlags);

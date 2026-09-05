@@ -36,6 +36,9 @@ void AP_GoalCompleted(void) {
 APSlotState* AP_SaveState(void) {
     return &sStubState;
 }
+uint32_t AP_GetSeedHash(void) {
+    return 0;
+}
 void AP_MarkSaveDirty(void) {
 }
 bool AP_TakeStateChanged(void) {
