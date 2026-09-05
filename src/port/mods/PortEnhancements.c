@@ -11,6 +11,7 @@
 // Must come after the INIT_EVENT_IDS include above (ApGame.h pulls in the event headers).
 #include "port/archipelago/ArchipelagoBridge.h"
 #include "port/archipelago/game/ApGame.h"
+#include "port/mods/RestartPoint.h"
 
 bool gBackToMap = false;
 
@@ -440,6 +441,9 @@ void PortEnhancements_Init() {
 
     // Cosmetic enhancements (engine glow), which an Archipelago yaml may override
     Cosmetics_Init();
+
+    // Free pause-menu restarts (shared with the Archipelago pause menu)
+    RestartPoint_Init();
 
     // Archipelago game-side listeners
     ApGame_Init();

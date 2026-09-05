@@ -1,4 +1,5 @@
 #include "ApGame.h"
+#include "port/mods/RestartPoint.h"
 #include <stdio.h>
 
 // ---------------------------------------------------------------------------
@@ -14,13 +15,49 @@ bool gApPauseIgnoreRewards = false;
 typedef enum {
     AP_PAUSE_CONTINUE,
     AP_PAUSE_RETRY,
+    AP_PAUSE_RESTART,
     AP_PAUSE_RESPAWN,
     AP_PAUSE_BACK_TO_MAP,
     AP_PAUSE_COUNT,
 } ApPauseEntry;
 
-static s32 EntryCount(void) {
-    return (gCurrentLevel == LEVEL_TRAINING) ? 2 : AP_PAUSE_COUNT;
+// The menu is built per frame: the free-restart entries only exist with the Checkpoint Restart
+// enhancement on, and the checkpoint one only once a checkpoint has actually been taken.
+static s32 sEntries[AP_PAUSE_COUNT];
+
+static s32 BuildEntries(void) {
+    s32 n = 0;
+
+    sEntries[n++] = AP_PAUSE_CONTINUE;
+    sEntries[n++] = AP_PAUSE_RETRY;
+    if (gCurrentLevel == LEVEL_TRAINING) {
+        return n;
+    }
+    if (RestartPoint_Enabled()) {
+        // RESTART > FROM CHECKPOINT supersedes Respawn: same destination, no Arwing spent and no death
+        // animation. Respawn stays for anyone running with the enhancement off, which is the default.
+        sEntries[n++] = AP_PAUSE_RESTART;
+    } else {
+        sEntries[n++] = AP_PAUSE_RESPAWN;
+    }
+    sEntries[n++] = AP_PAUSE_BACK_TO_MAP;
+    return n;
+}
+
+static const char* EntryLabel(s32 kind) {
+    switch (kind) {
+        case AP_PAUSE_RETRY:
+            return (gCurrentLevel == LEVEL_TRAINING) ? "QUIT TRAINING" : "RETRY COURSE";
+        case AP_PAUSE_RESTART:
+            return "RESTART";
+        case AP_PAUSE_RESPAWN:
+            return "RESPAWN";
+        case AP_PAUSE_BACK_TO_MAP:
+            return "BACK TO MAP";
+        case AP_PAUSE_CONTINUE:
+        default:
+            return "CONTINUE";
+    }
 }
 
 // Leave the level for the map without registering a clear (same transition as the debug "jump to map" cheat).
@@ -60,7 +97,12 @@ static void OnPauseInput(PauseMenuInputEvent* event) {
     }
     event->event.cancelled = true;
 
-    count = EntryCount();
+    if (RestartPoint_SubmenuActive()) {
+        RestartPoint_SubmenuInput();
+        return;
+    }
+
+    count = BuildEntries();
     sel = sPauseScreenIwork[1];
     if (sel >= count) {
         sel = count - 1;
@@ -85,12 +127,16 @@ static void OnPauseInput(PauseMenuInputEvent* event) {
         return;
     }
     if (press & A_BUTTON) {
-        switch (sel) {
+        switch (sEntries[sel]) {
             case AP_PAUSE_CONTINUE:
                 sPauseScreenIwork[0] = 10;
                 break;
             case AP_PAUSE_RETRY:
                 sPauseScreenIwork[0] = 2; // vanilla retry / quit training sequence
+                break;
+            case AP_PAUSE_RESTART:
+                RestartPoint_SubmenuEnter();
+                AUDIO_PLAY_SFX(NA_SE_CURSOR, gDefaultSfxSource, 4);
                 break;
             case AP_PAUSE_RESPAWN:
                 sPauseScreenIwork[0] = 10;
@@ -107,7 +153,6 @@ static void OnPauseInput(PauseMenuInputEvent* event) {
 }
 
 static void OnPauseDraw(PauseMenuDrawEvent* event) {
-    static char* sLabels[AP_PAUSE_COUNT] = { "CONTINUE", "RETRY COURSE", "RESPAWN", "BACK TO MAP" };
     s32 count;
     s32 i;
     s32 pulse;
@@ -119,7 +164,12 @@ static void OnPauseDraw(PauseMenuDrawEvent* event) {
     }
     event->event.cancelled = true;
 
-    count = EntryCount();
+    if (RestartPoint_SubmenuActive()) {
+        RestartPoint_SubmenuDraw(event->x, event->y);
+        return;
+    }
+
+    count = BuildEntries();
     HUD_MsgWindowBg_Draw2(event->x - 10.0f, event->y - 4.0f, 4.7f, (count > 2) ? 3.9f : 2.8f);
 
     pulse = sPauseScreenTimer[0] % 20;
@@ -134,10 +184,7 @@ static void OnPauseDraw(PauseMenuDrawEvent* event) {
     // The vanilla option textures are centred on x = 160; do the same with the small font.
     RCP_SetupDL(&gMasterDisp, SETUPDL_83_OPTIONAL);
     for (i = 0; i < count; i++) {
-        char* label = sLabels[i];
-        if ((i == AP_PAUSE_RETRY) && (gCurrentLevel == LEVEL_TRAINING)) {
-            label = "QUIT TRAINING";
-        }
+        char* label = (char*) EntryLabel(sEntries[i]);
         if (i == sPauseScreenIwork[1]) {
             gDPSetPrimColor(gMasterDisp++, 0, 0, 160, pulse, pulse, 255);
         } else {

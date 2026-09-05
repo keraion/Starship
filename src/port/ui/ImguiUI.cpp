@@ -624,6 +624,11 @@ void DrawEnhancementsMenu() {
                 .defaultValue = true
             });
             UIWidgets::CVarCheckbox("Use red radio backgrounds for enemies.", "gEnemyRedRadio");
+            UIWidgets::CVarCheckbox("Checkpoint restart", "gEnhancements.CheckpointRestart", {
+                .tooltip = "Adds Restart Level and Restart at Checkpoint to the pause menu. Restarting this way "
+                           "costs no Arwing and does not count as a death, and gives back the lasers, bombs, gold "
+                           "rings and wing health you had at that point instead of resetting them."
+            });
             UIWidgets::CVarSliderInt("Cockpit Glass Opacity: %d", "gCockpitOpacity", 0, 255, 120);
             
 
