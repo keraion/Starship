@@ -59,6 +59,7 @@ src/cn/
 
 properties.h
 mods*/
+!src/port/mods/
 
 # packaged Archipelago world (tools/ap_package_apworld.py)
 *.apworld

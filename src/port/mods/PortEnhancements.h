@@ -7,6 +7,9 @@ extern "C" {
 void PortEnhancements_Register();
 void PortEnhancements_Init();
 void PortEnhancements_Exit();
+
+// Cosmetics.c: player-facing cosmetic enhancements (engine glow colour), optionally driven by an Archipelago yaml
+void Cosmetics_Init(void);
 #define SETUPDL_OPTIONAL(digits) \
     (CVarGetInteger("gHUDPointFiltering", 1) == 1 ? SETUPDL_##digits##_POINT : SETUPDL_##digits)
 

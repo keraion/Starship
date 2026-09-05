@@ -84,11 +84,19 @@ The **Archipelago** menu also opens two more windows:
   Venom 2) once you hold the required number of medals. The ending plays only
   when the seed's victory condition is met.
 
+## Cosmetics
+
+Cosmetic options are Starship enhancements, not part of the client:
+**Enhancements > Cosmetics** has the engine glow colour (the same list as the
+world's `engine_glow` option, plus *Rainbow*). While a session is active, a
+yaml value other than `default` overrides the local setting, unless **Let an
+Archipelago yaml set cosmetics** is unticked. `default` in the yaml means "keep
+whatever the player chose".
+
 ## Not supported yet
 
-DeathLink and RingLink, the engine glow and AP logo models of the ROM hack, and
-the world's trap / Extra Arwing / cameo options.
-Cosmetic shuffles belong in Starship's own enhancements rather than the client.
+DeathLink and RingLink, the AP logo model of the ROM hack, and the world's
+trap / Extra Arwing / cameo options.
 
 ## Console commands (developer console)
 
@@ -152,6 +160,7 @@ Windows executable joins the same seed.
 | `src/port/archipelago/game/ApMap.c` | map navigation, path and planet tracker, heal menu, HUD |
 | `src/port/archipelago/game/ApMenu.c`, `ApPause.c` | main menu gating and the pause menu |
 | `src/port/archipelago/game/ApRadio.c` | seeded radio message shuffle (pool ported from the ROM hack) |
+| `src/port/mods/Cosmetics.c` | engine glow enhancement; reads the yaml's `engine_glow` through the bridge when allowed |
 | `src/port/archipelago/game/ApTables.c`, `ApLogic.*` | generated tables and compiled logic |
 | `src/port/hooks/list/MapEvent.h`, `ItemEvent.h`, `EngineEvent.h` | events fired from the decompiled map, menu, item and pause code |
 | `apworld/star_fox_64_ss/` | the Archipelago world itself |

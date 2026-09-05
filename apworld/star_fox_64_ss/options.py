@@ -89,6 +89,8 @@ class RadioRando(Choice):
 class EngineGlow(Choice):
   """
     Set the color of your engine's glow.
+    "default" keeps whatever is set in Starship's Enhancements > Cosmetics menu;
+    any other value overrides it while connected (players can turn that off in that menu).
   """
   display_name = "Engine Glow"
   option_default = 0

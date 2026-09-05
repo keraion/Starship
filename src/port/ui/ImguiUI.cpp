@@ -629,6 +629,22 @@ void DrawEnhancementsMenu() {
 
             ImGui::EndMenu();
         }
+
+        if (UIWidgets::BeginMenu("Cosmetics")) {
+            static const char* engineGlowChoices[] = { "Default", "Rainbow", "Red", "Deep Pink", "Magenta",
+                                                       "Electric Indigo", "Blue", "Dodger Blue", "Aqua",
+                                                       "Spring Green", "Lime", "Chartreuse", "Yellow",
+                                                       "Dark Orange" };
+            UIWidgets::CVarCombobox("Engine Glow", "gCosmetics.EngineGlow", engineGlowChoices, {
+                .tooltip = "Colour of your Arwing's and Landmaster's engine glow. Default keeps the vanilla colour for the level type.",
+                .defaultIndex = 0,
+            });
+            UIWidgets::CVarCheckbox("Let an Archipelago yaml set cosmetics", "gCosmetics.AllowArchipelago", {
+                .tooltip = "While connected to an Archipelago room, cosmetic options in your player yaml (engine_glow) override the settings above. Untick to always use your own settings.",
+                .defaultValue = true
+            });
+            ImGui::EndMenu();
+        }
         
         if (UIWidgets::BeginMenu("Fixes")) {
             UIWidgets::CVarCheckbox("Macbeth: Level ending cutscene camera fix", "gMaCameraFix", {

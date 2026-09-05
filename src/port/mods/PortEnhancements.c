@@ -438,6 +438,9 @@ void PortEnhancements_Init() {
     // If we close the game while debug pause is active, we want it to be deactivated when we run again.
     CVarSetInteger("gDebugPause", 0);
 
+    // Cosmetic enhancements (engine glow), which an Archipelago yaml may override
+    Cosmetics_Init();
+
     // Archipelago game-side listeners
     ApGame_Init();
 }
@@ -476,6 +479,7 @@ void PortEnhancements_Register() {
     REGISTER_EVENT(ActorStaticLoadEvent);
     REGISTER_EVENT(ActorItemDropEvent);
     REGISTER_EVENT(RadioMessageEvent);
+    REGISTER_EVENT(PlayerEngineGlowEvent);
 
     // Register map / menu events
     REGISTER_EVENT(MapSetupPreEvent);
