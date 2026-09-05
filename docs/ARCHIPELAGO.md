@@ -60,8 +60,8 @@ The **Archipelago** menu also opens two more windows:
   count toward Venom (`x OF y`), and `CHECKS: n` under it counts the selected
   planet's unchecked locations that are in logic right now.
 - **Pause menu**: **Continue**, **Retry Course**, **Respawn** (lose an Arwing
-  and restart at the last checkpoint) and **Back to Map** (leave the level
-  without a clear; nothing is sent). Training only has Continue and Quit. The
+  and restart at the last checkpoint; never counts as a DeathLink death) and
+  **Back to Map** (leave the level without a clear; nothing is sent). Training only has Continue and Quit. The
   seed's hit requirement for the level's medal is shown next to the menu.
 - **Locations**: Mission Complete / Accomplished / Warp, medals (thresholds
   come from the seed's options), freestanding rings / bombs / laser upgrades,
@@ -93,10 +93,26 @@ yaml value other than `default` overrides the local setting, unless **Let an
 Archipelago yaml set cosmetics** is unticked. `default` in the yaml means "keep
 whatever the player chose".
 
+## DeathLink
+
+With the seed's *Death Link* option on, going down broadcasts your death to
+every other DeathLink player in the room, and their deaths shoot you down in
+turn. The connection window has a **DeathLink** checkbox: it starts from the
+yaml option the first time a slot connects, and after that your own choice is
+remembered in the slot file (turning it on works even if the yaml left it off,
+since the tag is purely client-side).
+
+Only normal levels count — Training and Versus never send or receive. Deaths
+that arrive while you are on the map or in a menu are queued and land once you
+are flying again, so they are not lost (this is what the ROM hack does; several
+piling up while you sit on the map means several Arwings when you next take
+off). The pause menu's **Respawn** is queued the same way, which is what keeps
+a deliberate self-kill from being broadcast to the room.
+
 ## Not supported yet
 
-DeathLink and RingLink, the AP logo model of the ROM hack, and the world's
-trap / Extra Arwing / cameo options.
+RingLink, the AP logo model of the ROM hack, and the world's trap / Extra
+Arwing / cameo options.
 
 ## Console commands (developer console)
 
@@ -105,6 +121,8 @@ ap connect | disconnect | end | status
 ap say <text>
 ap check <locationId>      # debug: send a location check
 ap give <itemId> [count]   # debug: add to the local item count
+ap deathlink [on|off]      # show or change the setting for the current slot
+ap deathlink send          # debug: broadcast a death without dying
 ```
 
 ## Building
@@ -153,6 +171,7 @@ Archipelago checkout, see `apworld/README.md`).
 | `src/port/archipelago/game/ApMission.c` | mission clear / medal / Venom locations, goal, run stats |
 | `src/port/archipelago/game/ApMap.c` | map navigation, path and planet tracker, heal menu, HUD |
 | `src/port/archipelago/game/ApMenu.c`, `ApPause.c` | main menu gating and the pause menu |
+| `src/port/archipelago/game/ApDeathLink.c` | sends the player's deaths and applies the ones received |
 | `src/port/archipelago/game/ApRadio.c` | seeded radio message shuffle (pool ported from the ROM hack) |
 | `src/port/mods/Cosmetics.c` | engine glow enhancement; reads the yaml's `engine_glow` through the bridge when allowed |
 | `src/port/archipelago/game/ApTables.c`, `ApLogic.*` | generated tables and compiled logic |

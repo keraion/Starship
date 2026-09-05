@@ -38,6 +38,11 @@ class APSlotFile {
     std::string server;
     bool goalSent = false;
 
+    // DeathLink is seeded from the yaml option the first time a slot connects (deathLinkSet == false);
+    // after that the player's own choice in the connection window wins.
+    bool deathLink = false;
+    bool deathLinkSet = false;
+
     bool hasEeprom = false;
     uint8_t eeprom[kEepromSize]{};
 

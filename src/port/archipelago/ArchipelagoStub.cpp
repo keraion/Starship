@@ -66,6 +66,15 @@ void AP_Notify(const char* prefix, const char* message, const char* suffix) {
     (void) message;
     (void) suffix;
 }
+bool AP_DeathLinkEnabled(void) {
+    return false;
+}
+void AP_DeathLinkSend(const char* cause) {
+    (void) cause;
+}
+int AP_DeathLinkTakePending(void) {
+    return 0;
+}
 bool AP_EepromRead(void* dst, size_t size) {
     (void) dst;
     (void) size;

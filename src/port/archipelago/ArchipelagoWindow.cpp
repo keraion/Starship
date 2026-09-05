@@ -128,6 +128,12 @@ void ArchipelagoWindow::DrawElement() {
         ImGui::Text("Items received: %zu", ap->ReceivedCount());
         ImGui::Text("Locations checked: %zu / %d", ap->CheckedCount(), AP_LOCATION_MAX - 1);
         ImGui::Text("Goal: %s", ap->GoalDone() ? "completed" : "not yet");
+        bool deathLink = ap->DeathLink();
+        if (ImGui::Checkbox("DeathLink", &deathLink)) {
+            ap->SetDeathLink(deathLink);
+        }
+        UIWidgets::Tooltip("When you go down, your taking eveyone with you, and their deaths kill "
+                           "you.\nStarts from the seed's yaml option; your choice is remembered per slot.");
         ImGui::TextWrapped("Save: %s", ap->Slot().GetPath().c_str());
         if (ImGui::Button("End session", ImVec2(120, 0))) {
             ap->EndSession();

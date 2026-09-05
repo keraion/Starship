@@ -84,6 +84,8 @@ void APSlotFile::ResetToDefaults() {
     state.greatFoxIntact = 1;
     receivedItemCount = 0;
     goalSent = false;
+    deathLink = false;
+    deathLinkSet = false;
     hasEeprom = false;
     std::memset(eeprom, 0, sizeof(eeprom));
 }
@@ -127,6 +129,9 @@ bool APSlotFile::LoadOrCreate(const Key& key, const std::string& serverAddress) 
         worldVersion = j.value("worldVersion", worldVersion);
         receivedItemCount = j.value("receivedItemCount", 0u);
         goalSent = j.value("goalSent", false);
+        // Absent in files written before DeathLink support: fall back to the yaml option on connect.
+        deathLinkSet = j.contains("deathLink") && j["deathLink"].is_boolean();
+        deathLink = deathLinkSet && j["deathLink"].get<bool>();
 
         if (j.contains("options") && j["options"].is_array()) {
             size_t n = std::min<size_t>(j["options"].size(), AP_OPTION_MAX);
@@ -213,6 +218,9 @@ bool APSlotFile::Save() const {
     j["server"] = server;
     j["receivedItemCount"] = receivedItemCount;
     j["goalSent"] = goalSent;
+    if (deathLinkSet) {
+        j["deathLink"] = deathLink;
+    }
 
     json options = json::array();
     for (int i = 0; i < AP_OPTION_MAX; i++) {

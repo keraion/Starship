@@ -3,6 +3,7 @@
 #include "port/notification/notification.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -41,6 +42,12 @@ static inline bool BitGet(const uint8_t* bits, int id) {
 }
 static inline void BitSet(uint8_t* bits, int id) {
     bits[id / 8] |= (uint8_t) (1u << (id % 8));
+}
+
+// DeathLink stamps its bounces with a unix timestamp so receivers can drop duplicates.
+static double UnixNow() {
+    using namespace std::chrono;
+    return duration_cast<duration<double>>(system_clock::now().time_since_epoch()).count();
 }
 
 // ---------------------------------------------------------------------------
@@ -101,8 +108,12 @@ std::string Archipelago::CertPath() const {
 }
 
 std::vector<std::string> Archipelago::Tags() const {
-    // Extension point: add "DeathLink" / "RingLink" here when implemented.
-    return {};
+    // Extension point: add "RingLink" here when implemented.
+    std::vector<std::string> tags;
+    if (mDeathLink) {
+        tags.push_back("DeathLink");
+    }
+    return tags;
 }
 
 void Archipelago::Connect() {
@@ -157,6 +168,7 @@ void Archipelago::Disconnect() {
     DestroyTransport();
     mSynced = false;
     mConn = Conn::Idle;
+    mDeathLinkPending = 0;
     ArchipelagoConsole::Log("Disconnected", kColorWarn);
 }
 
@@ -168,6 +180,9 @@ void Archipelago::EndSession() {
         mServerChecked.clear();
         mScouted.clear();
         mSlot = APSlotFile();
+        mDeathLink = false;
+        mDeathLinkPending = 0;
+        mLastDeathLinkTime = 0.0;
         ArchipelagoConsole::Log("Session ended; returning to vanilla save", kColorWarn);
         RequestSoftReset();
     }
@@ -342,6 +357,54 @@ bool Archipelago::EepromWrite(const void* src, size_t size) {
     mDirty = true;
     FlushNow();
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// DeathLink
+
+void Archipelago::SetDeathLink(bool on) {
+    if (!mSessionActive) {
+        return;
+    }
+    mSlot.deathLink = on;
+    mSlot.deathLinkSet = true;
+    mDirty = true;
+    if (on == mDeathLink) {
+        return;
+    }
+    mDeathLink = on;
+    if (!on) {
+        mDeathLinkPending = 0;
+    }
+    if (mTransport != nullptr && mConn == Conn::SlotConnected) {
+        mTransport->ConnectUpdate(Tags());
+    }
+    ArchipelagoConsole::Log(on ? "DeathLink enabled" : "DeathLink disabled", kColorWarn);
+}
+
+void Archipelago::SendDeathLink(const std::string& cause) {
+    if (!mDeathLink || !IsReady()) {
+        return;
+    }
+    const std::string source = mTransport->GetSlotName();
+    const std::string text = cause.empty() ? (source + " was shot down.") : cause;
+
+    json data;
+    data["time"] = UnixNow();
+    data["source"] = source;
+    data["cause"] = text;
+    // Our own bounce comes back to us; remember its stamp so OnBounced can drop it even if the
+    // source name check ever fails (alias changes, team play).
+    mLastDeathLinkTime = data["time"].get<double>();
+    if (mTransport->Bounce(data.dump(), { "DeathLink" })) {
+        ArchipelagoConsole::Log("DeathLink sent: " + text, kColorWarn);
+    }
+}
+
+int Archipelago::TakeDeathLinkPending() {
+    int v = mDeathLinkPending;
+    mDeathLinkPending = 0;
+    return v;
 }
 
 std::string Archipelago::PlayerAlias(int player) const {
@@ -519,6 +582,22 @@ void Archipelago::OnSlotConnected(const std::string& slotDataJson) {
         ArchipelagoConsole::LogError("slot_data has no options object");
     }
 
+    // DeathLink: the yaml decides for a slot we have never connected before, afterwards the player's
+    // own choice sticks. ConnectSlot above sent the tags we believed in at the time, so correct them
+    // if the resolved value differs.
+    if (!mSlot.deathLinkSet) {
+        mSlot.deathLink = mSlot.state.options[AP_OPTION_DEATHLINK] != 0;
+        mSlot.deathLinkSet = true;
+    }
+    if (mSlot.deathLink != mDeathLink) {
+        mDeathLink = mSlot.deathLink;
+        mTransport->ConnectUpdate(Tags());
+    }
+    mDeathLinkPending = 0;
+    if (mDeathLink) {
+        ArchipelagoConsole::Log("DeathLink is on for this slot", kColorWarn);
+    }
+
     // Server-side checked locations. Only ids the server reports (missing + checked) exist for this
     // slot; event locations (e.g. unshuffled medals, "Starting Level") are unknown to it and must never
     // be sent, or the server drops the connection.
@@ -667,8 +746,55 @@ void Archipelago::OnPrintJson(const APPrintJson& msg) {
 }
 
 void Archipelago::OnBounced(const std::string& jsonText) {
-    // Extension point for DeathLink / RingLink.
-    (void) jsonText;
+    // Extension point for RingLink; DeathLink is handled below.
+    if (!mDeathLink || !mSessionActive || mTransport == nullptr) {
+        return;
+    }
+    json msg = json::parse(jsonText, nullptr, false);
+    if (!msg.is_object()) {
+        return;
+    }
+
+    bool tagged = false;
+    if (msg.contains("tags") && msg["tags"].is_array()) {
+        for (const auto& t : msg["tags"]) {
+            if (t.is_string() && t.get<std::string>() == "DeathLink") {
+                tagged = true;
+                break;
+            }
+        }
+    }
+    if (!tagged || !msg.contains("data") || !msg["data"].is_object()) {
+        return;
+    }
+    const json& data = msg["data"];
+
+    const std::string source = (data.contains("source") && data["source"].is_string())
+                                   ? data["source"].get<std::string>()
+                                   : std::string();
+    const std::string cause =
+        (data.contains("cause") && data["cause"].is_string()) ? data["cause"].get<std::string>() : std::string();
+    const double time = (data.contains("time") && data["time"].is_number()) ? data["time"].get<double>() : 0.0;
+
+    // The server bounces our own death back to us.
+    if (!source.empty() && source == mTransport->GetSlotName()) {
+        return;
+    }
+    if (time != 0.0 && time == mLastDeathLinkTime) {
+        return; // duplicate delivery
+    }
+    mLastDeathLinkTime = time;
+
+    const std::string text = !cause.empty() ? cause : (source.empty() ? "Someone died." : (source + " died."));
+    mDeathLinkPending++;
+    ArchipelagoConsole::Log("DeathLink received: " + text, kColorErr);
+    // Announced on arrival rather than when it lands: a death that turns up while you are on the map
+    // waits for the next level, and by then the "why" is worth having had in advance.
+    Notification::Emit({ .prefix = "DeathLink:",
+                         .prefixColor = ImVec4(0.6f, 0.6f, 1.0f, 1.0f),
+                         .message = text,
+                         .messageColor = kColorErr,
+                         .remainingTime = 6.0f });
 }
 
 // ---------------------------------------------------------------------------
@@ -680,13 +806,15 @@ void Archipelago::RegisterConsoleCommands() {
         return;
     }
     Ship::CommandEntry entry;
-    entry.Description = "Archipelago: ap connect|disconnect|end|status|say <text>|check <locationId>|give <itemId> [n]";
+    entry.Description = "Archipelago: ap connect|disconnect|end|status|say <text>|check <locationId>|"
+                        "give <itemId> [n]|deathlink [on|off]";
     entry.Arguments = { { "subcommand", Ship::ArgumentType::TEXT }, { "argument", Ship::ArgumentType::TEXT, true },
                         { "argument2", Ship::ArgumentType::TEXT, true } };
     entry.Handler = [](std::shared_ptr<Ship::Console> c, std::vector<std::string> args, std::string* output) -> int32_t {
         Archipelago* ap = Archipelago::Instance;
         if (ap == nullptr || args.size() < 2) {
-            *output = "usage: ap connect|disconnect|end|status|say <text>|check <id>|give <item> [n]";
+            *output = "usage: ap connect|disconnect|end|status|say <text>|check <id>|give <item> [n]|"
+                      "deathlink [on|off]";
             return 1;
         }
         const std::string& sub = args[1];
@@ -734,6 +862,24 @@ void Archipelago::RegisterConsoleCommands() {
             ap->DebugGiveItem((uint16_t) id, n);
             *output = std::string("local item count for ") + gApItemNames[id] + " is now " +
                       std::to_string(ap->State().items[id]);
+        } else if (sub == "deathlink") {
+            if (!ap->IsEnabled()) {
+                *output = "no session active";
+                return 1;
+            }
+            if (args.size() >= 3) {
+                if (args[2] == "on" || args[2] == "1") {
+                    ap->SetDeathLink(true);
+                } else if (args[2] == "off" || args[2] == "0") {
+                    ap->SetDeathLink(false);
+                } else if (args[2] == "send") {
+                    ap->SendDeathLink(""); // debug: broadcast a death without dying
+                } else {
+                    *output = "usage: ap deathlink [on|off|send]";
+                    return 1;
+                }
+            }
+            *output = std::string("deathlink is ") + (ap->DeathLink() ? "on" : "off");
         } else {
             *output = "unknown subcommand";
             return 1;

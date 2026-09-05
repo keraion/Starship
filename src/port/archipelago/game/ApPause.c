@@ -23,16 +23,6 @@ static s32 EntryCount(void) {
     return (gCurrentLevel == LEVEL_TRAINING) ? 2 : AP_PAUSE_COUNT;
 }
 
-// Kill the player where they are; the vanilla death handling respawns at the last checkpoint.
-static void Respawn(void) {
-    Player* player = &gPlayer[0];
-
-    if (player->state == PLAYERSTATE_ACTIVE) {
-        player->shields = 0;
-        player->radioDamageTimer = 2;
-    }
-}
-
 // Leave the level for the map without registering a clear (same transition as the debug "jump to map" cheat).
 static void BackToMap(void) {
     gApPauseIgnoreRewards = true;
@@ -104,7 +94,9 @@ static void OnPauseInput(PauseMenuInputEvent* event) {
                 break;
             case AP_PAUSE_RESPAWN:
                 sPauseScreenIwork[0] = 10;
-                Respawn();
+                // Queued rather than applied here: ApDeathLink.c kills the player once play resumes and
+                // swallows the death so a deliberate respawn never reaches the room.
+                ApDeathLink_QueueLocalDeath();
                 break;
             case AP_PAUSE_BACK_TO_MAP:
                 Audio_PlayPauseSfx(0);

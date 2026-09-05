@@ -73,6 +73,12 @@ const char* AP_GetLocationName(uint16_t locationId);
 const char* AP_GetPlayerAlias(int player); // "" when disconnected; result valid until the next call
 void AP_Notify(const char* prefix, const char* message, const char* suffix);
 
+// DeathLink (AP tag "DeathLink"): our deaths are broadcast to the room and deaths from other worlds
+// kill the player. Enabled by the seed's deathlink option, overridable per slot in the connection window.
+bool AP_DeathLinkEnabled(void);
+void AP_DeathLinkSend(const char* cause); // our player went down; cause may be NULL for the default text
+int AP_DeathLinkTakePending(void);        // number of deaths received since the last call, and clears them
+
 // Port-internal (called from src/sys/sys_joybus.c and PortEnhancements.c).
 bool AP_EepromRead(void* dst, size_t size);
 bool AP_EepromWrite(const void* src, size_t size);

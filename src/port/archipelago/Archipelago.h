@@ -55,6 +55,12 @@ class Archipelago final : public IAPTransportListener {
     bool EepromRead(void* dst, size_t size);
     bool EepromWrite(const void* src, size_t size);
 
+    // DeathLink
+    bool DeathLink() const { return mSessionActive && mDeathLink; }
+    void SetDeathLink(bool on);
+    void SendDeathLink(const std::string& cause);
+    int TakeDeathLinkPending();
+
     // Debug helpers (console)
     void DebugGiveItem(uint16_t item, int count);
     void FlushNow();
@@ -103,6 +109,10 @@ class Archipelago final : public IAPTransportListener {
     std::unordered_set<int64_t> mServerLocations; // every location id the server knows for this slot
     std::unordered_set<int64_t> mSentThisSession;
     std::unordered_map<int64_t, APNetItem> mScouted;
+
+    bool mDeathLink = false;         // effective setting (yaml default, overridable per slot)
+    int mDeathLinkPending = 0;       // deaths from other worlds waiting to be applied
+    double mLastDeathLinkTime = 0.0; // "time" of the last processed bounce, to drop duplicates
 
     bool mDirty = false;
     bool mStateChanged = false;

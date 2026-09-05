@@ -117,6 +117,20 @@ void AP_Notify(const char* prefix, const char* message, const char* suffix) {
                          .remainingTime = 6.0f });
 }
 
+bool AP_DeathLinkEnabled(void) {
+    return Archipelago::Instance != nullptr && Archipelago::Instance->DeathLink();
+}
+
+void AP_DeathLinkSend(const char* cause) {
+    if (Archipelago::Instance != nullptr) {
+        Archipelago::Instance->SendDeathLink(cause != nullptr ? cause : "");
+    }
+}
+
+int AP_DeathLinkTakePending(void) {
+    return (Archipelago::Instance != nullptr) ? Archipelago::Instance->TakeDeathLinkPending() : 0;
+}
+
 bool AP_EepromRead(void* dst, size_t size) {
     if (!AP_IsEnabled()) {
         return false;

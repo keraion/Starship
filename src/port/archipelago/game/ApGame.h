@@ -48,6 +48,10 @@ void ApMenu_DrawStatus(void);
 // ---- ApPause.c
 void ApPause_Init(void);
 
+// ---- ApDeathLink.c
+void ApDeathLink_Init(void);
+void ApDeathLink_QueueLocalDeath(void); // kill the player without broadcasting it (pause menu Respawn)
+
 // ApRadio.c: seeded shuffle of the radio dialogue (Radio Rando option)
 void ApRadio_Init(void);
 extern bool gApPauseIgnoreRewards; // set by "Back to Map": the next Map_Setup_Play must not register a clear
