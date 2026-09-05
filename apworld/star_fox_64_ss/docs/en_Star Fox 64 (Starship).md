@@ -1,4 +1,4 @@
-# Star Fox 64
+# Star Fox 64 (Starship)
 
 ## Where is the options page?
 

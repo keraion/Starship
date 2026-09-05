@@ -6,14 +6,23 @@ Usage: tools/ap_package_apworld.py [OUTPUT]   (default: ./star_fox_64_ss.apworld
 import importlib.util
 import json
 import os
+import re
 import sys
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WORLD = os.path.normpath(os.path.join(HERE, "..", "apworld", "star_fox_64_ss"))
 NAME = "star_fox_64_ss"
-GAME = "Star Fox 64"
 MINIMUM_AP_VERSION = "0.6.3"
+
+
+def game_name():
+    """The world's `game` attribute, read textually (importing the world needs Archipelago)."""
+    src = open(os.path.join(WORLD, "__init__.py"), encoding="utf-8").read()
+    m = re.search(r'^\s*game\s*=\s*"([^"]+)"', src, re.M)
+    if not m:
+        raise SystemExit("no game = \"...\" in %s/__init__.py" % WORLD)
+    return m.group(1)
 
 
 def world_version():
@@ -28,7 +37,7 @@ def world_version():
 def manifest():
     """archipelago.json as read by worlds/Files.py APWorldContainer (Archipelago >= 0.6.x; required from 0.7)."""
     return {
-        "game": GAME,
+        "game": game_name(),
         "world_version": world_version(),
         "minimum_ap_version": MINIMUM_AP_VERSION,
         "compatible_version": 7,

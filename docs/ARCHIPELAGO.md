@@ -1,7 +1,7 @@
 # Archipelago (multiworld randomizer) support
 
 Starship can act as a native client for the [Archipelago](https://archipelago.gg)
-**Star Fox 64** world. No emulator, ROM patch or Python client is needed: Starship
+**Star Fox 64 (Starship)** world. No emulator, ROM patch or Python client is needed: Starship
 connects to the multiworld server itself.
 
 ## Requirements
@@ -9,9 +9,11 @@ connects to the multiworld server itself.
 - A build with `ENABLE_ARCHIPELAGO=ON` (the default on Windows, Linux and macOS;
   not available on Switch / Wii U).
 - A multiworld generated with this repository's `star_fox_64_ss.apworld`
-  (world version 0.4.1, see `apworld/star_fox_64_ss/version.py`). The world is
+  (world version 0.1.0, see `apworld/star_fox_64_ss/version.py`; the fork restarted its numbering at 0.1.0 so seeds are never confused with the emulator world). The world is
   vendored in `apworld/star_fox_64_ss` and maintained there as its own fork of
-  Auztin's AP-Star-Fox-64 world; `apworld/README.md` explains packaging and how
+  Auztin's AP-Star-Fox-64 world. It registers as the game `Star Fox 64 (Starship)`
+  (that is the `game:` line in player yamls) so it can be installed next to the
+  emulator world and never shares a room slot with it; `apworld/README.md` explains packaging and how
   the game-side tables are generated from it. Starship refuses seeds generated
   with a different world version.
 - `networking/cacert.pem` next to the executable (copied automatically by the

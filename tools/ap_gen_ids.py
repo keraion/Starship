@@ -34,6 +34,15 @@ def load_world_data(world):
     return importlib.import_module("sf64_world_pkg.data")
 
 
+def game_name(world):
+    """The world's `game` attribute, read textually (the world __init__ needs Archipelago to import)."""
+    src = open(os.path.join(world, "__init__.py"), encoding="utf-8").read()
+    m = re.search(r'^\s*game\s*=\s*"([^"]+)"', src, re.M)
+    if not m:
+        raise SystemExit("no game = \"...\" in %s/__init__.py" % world)
+    return m.group(1)
+
+
 def world_dir(path):
     """Accept either the world package directory or an AP-Star-Fox-64 checkout (with an ap/ subdir)."""
     if os.path.isfile(os.path.join(path, "ids.py")):
@@ -104,7 +113,7 @@ def generate(apworld):
     w("")
     w("#include <stdint.h>")
     w("")
-    w("#define AP_GAME_NAME \"Star Fox 64\"")
+    w("#define AP_GAME_NAME \"%s\"" % game_name(apworld))
     w("#define AP_WORLD_VERSION_MAJOR %d" % version.major)
     w("#define AP_WORLD_VERSION_MINOR %d" % version.minor)
     w("#define AP_WORLD_VERSION_BUILD %d" % version.build)

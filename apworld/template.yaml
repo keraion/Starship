@@ -1,6 +1,6 @@
 name: Player{NUMBER}
-game: Star Fox 64
-Star Fox 64:
+game: Star Fox 64 (Starship)
+Star Fox 64 (Starship):
 
   # When you die, everyone who enabled death link dies. Of course, the reverse is true too.
   deathlink: false

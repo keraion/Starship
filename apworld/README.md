@@ -2,13 +2,16 @@
 
 `star_fox_64_ss/` is the Archipelago world for Star Fox 64. It started as the `ap/`
 directory of [Auztin/AP-Star-Fox-64](https://github.com/Auztin/AP-Star-Fox-64)
-(commit `58d691c`, world version 0.4.1, MIT licensed; see `star_fox_64_ss/LICENSE`)
-and is maintained here from now on as its own fork: this copy is the source of
-truth for Starship, and it is versioned together with the client that speaks its
-item, location and option IDs. The upstream emulator client (`client.py`) and its
-setup guide were dropped; the docs here describe Starship. Compatibility with the upstream emulator world is
-not a goal; bump `version.py` whenever the IDs or slot data change so mismatched
-seeds are refused rather than misread.
+(commit `58d691c`, upstream world version 0.4.1, MIT licensed; see
+`star_fox_64_ss/LICENSE`) and is maintained here from now on as its own fork: this
+copy is the source of truth for Starship, and it is versioned together with the
+client that speaks its item, location and option IDs. The fork registers as the game
+`Star Fox 64 (Starship)` and restarted its numbering at 0.1.0
+(`star_fox_64_ss/version.py`), so it installs next to the emulator world and its
+seeds are never confused with it. The upstream emulator client (`client.py`) and its
+setup guide were dropped; the docs here describe Starship. Compatibility with the
+upstream emulator world is not a goal; bump `version.py` whenever the IDs or slot
+data change so mismatched seeds are refused rather than misread.
 
 `template.yaml` is the player options template that matches this world version.
 
