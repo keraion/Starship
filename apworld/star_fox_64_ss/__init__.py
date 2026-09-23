@@ -88,7 +88,7 @@ class StarFox64SSWebWorld(WebWorld):
     ]
 
 
-class StarFox64World(World):
+class StarFox64SSWorld(World):
     """
     Star Fox 64 is a 3D rail shooter game in which the player controls one of the vehicles piloted by Fox McCloud, usually an Arwing.
     """
