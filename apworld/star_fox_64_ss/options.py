@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import PerGameCommonOptions, Choice, Range, Toggle, StartInventoryPool
+from Options import PerGameCommonOptions, Choice, Range, Toggle, StartInventoryPool, Visibility
 
 class DeathLink(Toggle):
     """
@@ -12,6 +12,7 @@ class RingLink(Toggle):
         Enable Ring Link for use with games that support it. Incoming rings are converted to the current level's Hit counter.
     """
     display_name = "Ring Link"
+    visibility = Visibility.none  # the Starship client does not implement Ring Link yet
 
 class VictoryCondition(Choice):
     """
