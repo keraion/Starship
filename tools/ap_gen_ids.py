@@ -76,8 +76,9 @@ def generate(apworld):
     options = ids.option_name_to_id
     items = ids.item_name_to_id
     locations = ids.location_name_to_id
-    group_items = ids.group_items
-    group_locations = ids.group_locations
+    world_data = load_world_data(apworld)
+    group_items = world_data.item_groups
+    group_locations = world_data.location_groups
 
     item_max = max(items.values()) + 1
     loc_max = max(locations.values()) + 1

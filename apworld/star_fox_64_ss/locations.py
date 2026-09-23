@@ -1,15 +1,13 @@
 from BaseClasses import Location
-from .ids import location_name_to_id, group_locations
+from . import data
+from .ids import location_name_to_id
 
 name_to_id = {}
-groups = {}
+groups = {name: set(members) for name, members in data.location_groups.items()}
 
 for name, value in location_name_to_id.items():
     if value > 0:
         name_to_id[name] = value
-
-for group_name, locations in group_locations.items():
-    groups[group_name] = set(locations)
 
 class StarFox64SSLocation(Location):
     game = "Star Fox 64 (Starship)"

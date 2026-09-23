@@ -11,7 +11,7 @@ from .options import StarFox64SSOptions
 from .locations import StarFox64SSLocation
 from .items import StarFox64SSItem
 from .rules import StarFox64SSRules
-from .ids import option_name_to_id, group_items
+from .ids import option_name_to_id
 
 
 class StarFox64SSWebWorld(WebWorld):
@@ -126,7 +126,7 @@ class StarFox64SSWorld(World):
 
         self.swap_items: dict[str, str] = {}
         if self.options.shuffle_starting_level:
-            valid_levels = group_items["Levels"].copy()
+            valid_levels = data.item_groups["Levels"].copy()
             valid_levels.remove("Venom")
             item_name = self.random.choice(valid_levels)
             self.swap_items["Corneria"] = item_name
