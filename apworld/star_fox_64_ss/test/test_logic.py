@@ -48,12 +48,15 @@ class TestShuffleStartingLevel(StarFox64SSTestBase):
         "shuffle_starting_level": True,
     }
 
-    def test_starts_elsewhere_and_corneria_is_shuffled(self) -> None:
+    def test_starting_level_swaps_with_corneria(self) -> None:
         start = [item.name for item in self.multiworld.precollected_items[self.player]]
         self.assertEqual(len(start), 1)
-        self.assertNotIn(start[0], ("Corneria", "Venom"))
-        self.assertIn("Corneria", {item.name for item in self.multiworld.itempool})
+        self.assertNotEqual(start[0], "Venom")
         self.assertTrue(self.can_reach_region(start[0]))  # level items are named after their region
+        pool = {item.name for item in self.multiworld.itempool}
+        self.assertNotIn(start[0], pool)
+        if start[0] != "Corneria":  # the shuffle can land on Corneria itself
+            self.assertIn("Corneria", pool)
 
 
 class TestAllMedalsClamped(StarFox64SSTestBase):

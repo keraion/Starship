@@ -15,6 +15,7 @@ APCONTAINER_VERSION = 7  # worlds/Files.py container_version; required in a pack
 
 
 def main():
+    """Zip the world folder, writing archipelago.json with the container fields added."""
     out = sys.argv[1] if len(sys.argv) > 1 else f"{WORLD.name}.apworld"
     manifest_path = WORLD / "archipelago.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

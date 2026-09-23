@@ -1,10 +1,13 @@
-import Options, logging, typing
+import logging
+from typing import Any
+
+import Options
 from worlds.AutoWorld import World, WebWorld
 from Options import OptionGroup
-from BaseClasses import Region, Tutorial
+from BaseClasses import Entrance, Location, Region, Tutorial
 
-from . import options, locations, items, data, rules
-from .options import StarFox64SSOptions, StarFox64SSOptionsList
+from . import options, locations, items, data
+from .options import StarFox64SSOptions
 from .locations import StarFox64SSLocation
 from .items import StarFox64SSItem
 from .rules import StarFox64SSRules
@@ -88,7 +91,8 @@ class StarFox64SSWebWorld(WebWorld):
 
 class StarFox64SSWorld(World):
     """
-    Star Fox 64 is a 3D rail shooter game in which the player controls one of the vehicles piloted by Fox McCloud, usually an Arwing.
+    Star Fox 64 is a 3D rail shooter game in which the player controls one of the vehicles piloted by Fox McCloud,
+    usually an Arwing.
     """
 
     game = "Star Fox 64 (Starship)"
@@ -108,7 +112,7 @@ class StarFox64SSWorld(World):
         "Gold Ring": 6,
     }
 
-    def generate_early(self):
+    def generate_early(self) -> None:
         if (
             not self.options.shuffle_medals
             and self.options.required_medals == 15
@@ -131,10 +135,10 @@ class StarFox64SSWorld(World):
         # After the clamp above: the parser snapshots option values.
         self.rules = StarFox64SSRules(self)
 
-    def create_item(self, item_name):
+    def create_item(self, item_name: str) -> StarFox64SSItem:
         return items.create_item(self, item_name)
 
-    def create_victory_condition(self):
+    def create_victory_condition(self) -> None:
         condition = lambda state: False
         andross = "Defeated Andross"
         robot_andross = "Defeated Robot Andross"
@@ -151,11 +155,12 @@ class StarFox64SSWorld(World):
                 condition = lambda state: state.has(andross, self.player)
         self.multiworld.completion_condition[self.player] = condition
 
-    def create_regions(self):
+    def create_regions(self) -> None:
         ap_regions = {name: Region(name, self.player, self.multiworld) for name in data.regions}
-        self.pending_rules = []  # (location or entrance, logic, where), applied in set_rules
-        self.pending_items = []  # (location, item name), filled in create_items
-        self.start_items = []  # Menu "locations" are option-only grants, precollected in create_items
+        # (location or entrance, logic, where), applied in set_rules
+        self.pending_rules: list[tuple[Location | Entrance, str, str]] = []
+        self.pending_items: list[tuple[StarFox64SSLocation, str]] = []  # (location, item name), filled in create_items
+        self.start_items: list[str] = []  # Menu "locations" are option-only grants, precollected in create_items
         for region_name, region in data.regions.items():
             ap_region = ap_regions[region_name]
             for location_name, location in region.get("locations", {}).items():
@@ -175,10 +180,12 @@ class StarFox64SSWorld(World):
                 )
             for exit_name, _exit in region.get("exits", {}).items():
                 entrance = ap_region.connect(ap_regions[exit_name])
-                self.pending_rules.append((entrance, _exit["logic"], f"{self.game}, Exit: {region_name} -> {exit_name}"))
+                self.pending_rules.append(
+                    (entrance, _exit["logic"], f"{self.game}, Exit: {region_name} -> {exit_name}")
+                )
         self.multiworld.regions += ap_regions.values()
 
-    def create_items(self):
+    def create_items(self) -> None:
         for item_name in self.start_items:
             self.push_precollected(self.create_item(item_name))
         for ap_location, item_name in self.pending_items:
@@ -192,17 +199,17 @@ class StarFox64SSWorld(World):
             else:
                 ap_location.place_locked_item(item)
 
-    def set_rules(self):
+    def set_rules(self) -> None:
         self.create_victory_condition()
         for spot, logic, where in self.pending_rules:
             spot.access_rule = self.rules.parse(logic, where)
 
-    def get_filler_item_name(self):
+    def get_filler_item_name(self) -> str:
         return self.random.choices(
             list(self.filler_weights.keys()), self.filler_weights.values()
         )[0]
 
-    def fill_slot_data(self):
+    def fill_slot_data(self) -> dict[str, Any]:
         return {
             "options": self.options.as_dict(*option_name_to_id.keys()),
             "version": (self.world_version.major << 16) | (self.world_version.minor << 8) | self.world_version.build,
