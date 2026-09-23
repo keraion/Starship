@@ -92,6 +92,7 @@ jobs:
           mv config.yml starship-release/
           mv assets starship-release/
           mv networking starship-release/networking
+          cp THIRD_PARTY_NOTICES.md starship-release/
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/master/gamecontrollerdb.txt" -OutFile "starship-release/gamecontrollerdb.txt"
       - name: Upload build
         uses: actions/upload-artifact@v4
@@ -133,6 +134,7 @@ jobs:
           path: |
             Starship.dmg
             readme.txt
+            THIRD_PARTY_NOTICES.md
 
   build-linux:
     needs: generate-port-o2r
@@ -219,6 +221,7 @@ jobs:
           name: Starship-linux
           path: |
             starship.appimage
+            THIRD_PARTY_NOTICES.md
             config.yml
             assets
             gamecontrollerdb.txt
