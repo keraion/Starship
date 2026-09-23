@@ -84,6 +84,16 @@ jobs:
       - name: World logic tests
         working-directory: archipelago
         run: python -m unittest -v worlds.star_fox_64_ss.test.test_logic
+      - name: Generate player options template
+        working-directory: archipelago
+        run: python -c "import Options; Options.generate_yaml_templates('templates', False)"
+      - name: Upload player options template
+        uses: actions/upload-artifact@v4
+        with:
+          name: star_fox_64_ss-template.yaml
+          path: archipelago/templates/Star Fox 64 (Starship).yaml
+          if-no-files-found: error
+          retention-days: 1
       - name: Compiled C logic matches the Python rules
         run: python tools/ap_logic_test/difftest.py
 
@@ -254,3 +264,30 @@ jobs:
             config.yml
             assets
             gamecontrollerdb.txt
+
+  # On a tag push: collect every build into a draft GitHub release named after the tag (publish it by hand).
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [package-apworld, test-apworld, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Assemble release files
+        run: |
+          v="$GITHUB_REF_NAME"
+          mkdir release
+          cp artifacts/star_fox_64_ss.apworld/star_fox_64_ss.apworld release/
+          cp "artifacts/star_fox_64_ss-template.yaml/Star Fox 64 (Starship).yaml" "release/Starship_${v}_Default_Template.yaml"
+          chmod +x artifacts/Starship-linux/starship.appimage  # artifacts do not keep file modes
+          for platform in Linux:Starship-linux Mac:Starship-mac Windows:starship-windows; do
+            (cd "artifacts/${platform#*:}" && zip -qr "../../release/Starship_Archipelago_${v}_${platform%%:*}.zip" .)
+          done
+          ls -l release
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes --draft
