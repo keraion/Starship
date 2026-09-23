@@ -123,38 +123,3 @@ class StarFox64SSRules(ast.NodeTransformer):
             case 1:
                 return node.values[0]
         return node
-
-    def visit_Call(self, node):
-        if (isinstance(node.func, ast.Name)):
-            match node.func.id:
-                case "any_except":
-                    assert len(node.args) >= 2, f"{self.file}: any_except requires at least 2 arguments."
-                    except_list = []
-                    for idx, arg in enumerate(node.args):
-                        arg = self.visit(arg)
-                        if (idx == 0):
-                            node = arg
-                            continue
-                        assert isinstance(arg, ast.Call), f"{self.file}: any_except invalid arg: {idx}"
-                        args = arg.args[0]
-                        elts = [args]
-                        if (isinstance(args, ast.Tuple)): elts = args.elts
-                        for elt in elts:
-                            assert isinstance(elt, ast.Constant), f"{self.file}: any_except invalid arg: {idx}"
-                            except_list.append(elt.value)
-                    assert isinstance(node, ast.Call) and isinstance(node.args[0], ast.Tuple), (
-                        f"{self.file}: any_except requires arg 1 to be a list of items."
-                    )
-                    node.args[0].elts = list(filter(lambda elt: elt.value not in except_list, node.args[0].elts))
-                    return node
-                case "count":
-                    assert len(node.args) == 1, f"{self.file}: count requires exactly 1 argument."
-                    item = self.visit(node.args[0])
-                    assert isinstance(item, ast.Call), f"{self.file}: count invalid arg."
-                    node.func = self.make_attr("state", "count")
-                    node.args = [item.args[0], self.player]
-                    return node
-                case "can_reach":
-                    node.args.insert(1, self.player)
-        self.generic_visit(node)
-        return node
