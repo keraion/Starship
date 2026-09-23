@@ -24,6 +24,16 @@ python3 tools/ap_package_apworld.py            # writes star_fox_64_ss.apworld
 Copy the resulting `star_fox_64_ss.apworld` into your Archipelago install's
 `custom_worlds/` directory. CI also uploads it as an artifact.
 
+## Tests
+
+`star_fox_64_ss/test/` holds `WorldTestBase` logic tests. Package the world into an Archipelago
+checkout's `custom_worlds/`, then run them from that checkout:
+
+```
+python3 tools/ap_package_apworld.py $ARCHIPELAGO_DIR/custom_worlds/star_fox_64_ss.apworld
+cd $ARCHIPELAGO_DIR && python -m unittest worlds.star_fox_64_ss.test.test_logic
+```
+
 ## Keeping the client in sync
 
 The world data is the single source of truth for the game-side tables. Each level
