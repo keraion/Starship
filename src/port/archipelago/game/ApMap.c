@@ -731,9 +731,9 @@ static void DrawMedalIcon(f32 x, f32 y, f32 scale) {
 }
 
 static void OnMapHudDraw(MapHudDrawEvent* event) {
+    const f32 x = 254.0f;
+    const f32 y = 34.0f;
     s32 have;
-    s32 required;
-    char buf[32];
 
     (void) event;
     if (!AP_IsEnabled()) {
@@ -742,23 +742,19 @@ static void OnMapHudDraw(MapHudDrawEvent* event) {
     if ((sMapState != MAP_IDLE) && (sMapState != MAP_PATH_CHANGE)) {
         return;
     }
-    required = AP_GetOption(AP_OPTION_REQUIRED_MEDALS);
-    if (!AP_GetOption(AP_OPTION_SHUFFLE_MEDALS) && (required == 0)) {
+    if (!AP_GetOption(AP_OPTION_SHUFFLE_MEDALS) && (AP_GetOption(AP_OPTION_REQUIRED_MEDALS) == 0)) {
         return;
     }
     have = ApMission_MedalCount();
-    if (required > 0) {
-        sprintf(buf, "%d OF %d", have, required);
-    } else {
-        sprintf(buf, "%d", have);
-    }
-    // Top-right, under the lives counter, laid out like it: icon then count.
+    // Under the lives counter, drawn like it (map.c Map_RemainingLives_Draw): icon, "x", count.
     RCP_SetupDL(&gMasterDisp, SETUPDL_85_OPTIONAL);
     gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 255, 255);
-    DrawMedalIcon(254.0f, 34.0f, 0.25f);
+    DrawMedalIcon(x, y, 0.25f);
+    gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 0, 255);
+    Lib_TextureRect_CI4(&gMasterDisp, aMapXTex, aMapXTLUT, 16, 7, x + 18.0f, y + 9.0f, 1.0f, 1.0f);
     RCP_SetupDL(&gMasterDisp, SETUPDL_83_OPTIONAL);
     gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 0, 255);
-    Graphics_DisplaySmallText(274, 38, 1.0f, 1.0f, buf);
+    Graphics_DisplaySmallNumber(x + 33.0f - ((have >= 10) ? (HUD_CountDigits(have) - 1) * 8 - 3 : 0), y + 8.0f, have);
 }
 
 // Unchecked locations that are in logic on the selected planet (tracker).
@@ -778,9 +774,10 @@ static s32 InLogicAtPlanet(PlanetId planet) {
     return count;
 }
 
-static void OnMapTrackerDraw(MapHudDrawEvent* event) {
-    char buf[32];
+// 32x32 RGBA16 downscale of Archipelago's data/icon.png (MIT, Copyright (c) 2017 LLCoolDave et al.).
+static const ALIGN_ASSET(2) char sApLogoTex[] = "__OTR__assets/textures/hud/sApLogo";
 
+static void OnMapTrackerDraw(MapHudDrawEvent* event) {
     (void) event;
     if (!AP_IsEnabled()) {
         return;
@@ -788,10 +785,14 @@ static void OnMapTrackerDraw(MapHudDrawEvent* event) {
     if ((sMapState != MAP_IDLE) && (sMapState != MAP_PATH_CHANGE)) {
         return;
     }
-    sprintf(buf, "CHECKS: %d", InLogicAtPlanet(sCurrentPlanetId));
+    // Top row, between TOP and the lives counter: AP logo, then the in-logic count for the selected planet.
+    // 12x12 to match the Arwing icon's visible 13x12 (its 16x16 texture is bottom-aligned at y 20..31).
+    RCP_SetupDL(&gMasterDisp, SETUPDL_76_OPTIONAL);
+    gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 255, 255);
+    Lib_TextureRect_RGBA16(&gMasterDisp, (u16*) sApLogoTex, 32, 32, 212.0f, 20.0f, 0.375f, 0.375f);
     RCP_SetupDL(&gMasterDisp, SETUPDL_83_OPTIONAL);
     gDPSetPrimColor(gMasterDisp++, 0, 0, 255, 255, 0, 255);
-    Graphics_DisplaySmallText(296 - Graphics_GetSmallTextWidth(buf), 54, 1.0f, 1.0f, buf);
+    Graphics_DisplaySmallNumber(228, 24, InLogicAtPlanet(sCurrentPlanetId));
 }
 
 void ApMap_Init(void) {
