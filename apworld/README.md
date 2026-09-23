@@ -7,10 +7,10 @@ directory of [Auztin/AP-Star-Fox-64](https://github.com/Auztin/AP-Star-Fox-64)
 copy is the source of truth for Starship, and it is versioned together with the
 client that speaks its item, location and option IDs. The fork registers as the game
 `Star Fox 64 (Starship)` and restarted its numbering at 0.1.0
-(`star_fox_64_ss/version.py`), so it installs next to the emulator world and its
+(`world_version` in `star_fox_64_ss/archipelago.json`), so it installs next to the emulator world and its
 seeds are never confused with it. The upstream emulator client (`client.py`) and its
 setup guide were dropped; the docs here describe Starship. Compatibility with the
-upstream emulator world is not a goal; bump `version.py` whenever the IDs or slot
+upstream emulator world is not a goal; bump `world_version` whenever the IDs or slot
 data change so mismatched seeds are refused rather than misread.
 
 `template.yaml` is the player options template that matches this world version.
@@ -31,7 +31,7 @@ region carries a `meta` block (`level`, `planet`, `medal_option`, `level_item`),
 Mission Finished locations carry a `status` (`complete` / `accomplished` / `warp`),
 freestanding items and checkpoints carry the `object_index` into the level's
 object list, and level exits carry the `path` item they need. Python ignores these
-keys; `tools/ap_gen_ids.py` turns them (plus `ids.py`, `version.py` and the
+keys; `tools/ap_gen_ids.py` turns them (plus `ids.py`, `archipelago.json` and the
 option classes in `options.py`) into `src/port/archipelago/ArchipelagoIds.h`,
 `src/port/archipelago/game/ApTables.c`, and `src/port/archipelago/game/ApLogic.{h,c}`.
 The last pair is the logic strings compiled to C: one predicate per rule, the

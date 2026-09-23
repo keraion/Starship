@@ -9,7 +9,6 @@ from .regions import StarFox64SSRegion
 from .locations import StarFox64SSLocation
 from .items import StarFox64SSItem
 from .rules import StarFox64SSRules
-from .version import version
 from .ids import option_name_to_id, group_items
 
 
@@ -211,5 +210,5 @@ class StarFox64SSWorld(World):
     def fill_slot_data(self):
         return {
             "options": self.options.as_dict(*option_name_to_id.keys()),
-            "version": version.as_u32(),
+            "version": (self.world_version.major << 16) | (self.world_version.minor << 8) | self.world_version.build,
         }

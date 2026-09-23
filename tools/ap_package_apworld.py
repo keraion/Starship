@@ -1,68 +1,31 @@
 #!/usr/bin/env python3
 """Package apworld/star_fox_64_ss into a star_fox_64_ss.apworld zip.
 
+Same result as the Archipelago launcher's "Build APWorlds", without needing an Archipelago install.
+
 Usage: tools/ap_package_apworld.py [OUTPUT]   (default: ./star_fox_64_ss.apworld)
 """
-import importlib.util
 import json
-import os
-import re
 import sys
 import zipfile
+from pathlib import Path
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-WORLD = os.path.normpath(os.path.join(HERE, "..", "apworld", "star_fox_64_ss"))
-NAME = "star_fox_64_ss"
-MINIMUM_AP_VERSION = "0.6.3"
-
-
-def game_name():
-    """The world's `game` attribute, read textually (importing the world needs Archipelago)."""
-    src = open(os.path.join(WORLD, "__init__.py"), encoding="utf-8").read()
-    m = re.search(r'^\s*game\s*=\s*"([^"]+)"', src, re.M)
-    if not m:
-        raise SystemExit("no game = \"...\" in %s/__init__.py" % WORLD)
-    return m.group(1)
-
-
-def world_version():
-    """version.py is plain Python (no Archipelago imports), so it can be loaded directly."""
-    sys.dont_write_bytecode = True
-    spec = importlib.util.spec_from_file_location("sf64_version", os.path.join(WORLD, "version.py"))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod.version.as_string()
-
-
-def manifest():
-    """archipelago.json as read by worlds/Files.py APWorldContainer (Archipelago >= 0.6.x; required from 0.7)."""
-    return {
-        "game": game_name(),
-        "world_version": world_version(),
-        "minimum_ap_version": MINIMUM_AP_VERSION,
-        "compatible_version": 7,
-        "version": 7,
-    }
+WORLD = Path(__file__).resolve().parent.parent / "apworld" / "star_fox_64_ss"
+APCONTAINER_VERSION = 7  # worlds/Files.py container_version; required in a packaged manifest
 
 
 def main():
-    out = sys.argv[1] if len(sys.argv) > 1 else NAME + ".apworld"
-    if not os.path.isfile(os.path.join(WORLD, "__init__.py")):
-        raise SystemExit("world package not found at %s" % WORLD)
-    count = 0
+    out = sys.argv[1] if len(sys.argv) > 1 else f"{WORLD.name}.apworld"
+    manifest_path = WORLD / "archipelago.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest |= {"version": APCONTAINER_VERSION, "compatible_version": APCONTAINER_VERSION}
+    files = sorted(p for p in WORLD.rglob("*")
+                   if p.is_file() and p != manifest_path and "__pycache__" not in p.parts)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for root, dirs, files in os.walk(WORLD):
-            dirs[:] = sorted(d for d in dirs if d != "__pycache__")
-            for f in sorted(files):
-                if f.endswith((".pyc", ".pyo")):
-                    continue
-                full = os.path.join(root, f)
-                rel = os.path.join(NAME, os.path.relpath(full, WORLD))
-                z.write(full, rel)
-                count += 1
-        z.writestr(os.path.join(NAME, "archipelago.json"), json.dumps(manifest(), indent=2) + "\n")
-        count += 1
-    print("wrote %s (%d files)" % (out, count))
+        for p in files:
+            z.write(p, p.relative_to(WORLD.parent).as_posix())
+        z.writestr(f"{WORLD.name}/archipelago.json", json.dumps(manifest, indent=2) + "\n")
+    print(f"wrote {out} ({len(files) + 1} files)")
 
 
 if __name__ == "__main__":

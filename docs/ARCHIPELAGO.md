@@ -9,7 +9,7 @@ connects to the multiworld server itself.
 - A build with `ENABLE_ARCHIPELAGO=ON` (the default on Windows, Linux and macOS;
   not available on Switch / Wii U).
 - A multiworld generated with this repository's `star_fox_64_ss.apworld`
-  (world version 0.1.0, see `apworld/star_fox_64_ss/version.py`; the fork restarted its numbering at 0.1.0 so seeds are never confused with the emulator world). The world is
+  (world version 0.1.0, see `apworld/star_fox_64_ss/archipelago.json`; the fork restarted its numbering at 0.1.0 so seeds are never confused with the emulator world). The world is
   vendored in `apworld/star_fox_64_ss` and maintained there as its own fork of
   Auztin's AP-Star-Fox-64 world. It registers as the game `Star Fox 64 (Starship)`
   (that is the `game:` line in player yamls) so it can be installed next to the
