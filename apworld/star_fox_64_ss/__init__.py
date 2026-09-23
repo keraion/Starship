@@ -1,11 +1,10 @@
 import Options, logging, typing
 from worlds.AutoWorld import World, WebWorld
 from Options import OptionGroup
-from BaseClasses import Tutorial
+from BaseClasses import Region, Tutorial
 
-from . import options, regions, locations, items, data, rules
+from . import options, locations, items, data, rules
 from .options import StarFox64SSOptions, StarFox64SSOptionsList
-from .regions import StarFox64SSRegion
 from .locations import StarFox64SSLocation
 from .items import StarFox64SSItem
 from .rules import StarFox64SSRules
@@ -129,6 +128,9 @@ class StarFox64SSWorld(World):
             self.swap_items["Corneria"] = item_name
             self.swap_items[item_name] = "Corneria"
 
+        # After the clamp above: the parser snapshots option values.
+        self.rules = StarFox64SSRules(self)
+
     def create_item(self, item_name):
         return items.create_item(self, item_name)
 
@@ -149,57 +151,51 @@ class StarFox64SSWorld(World):
                 condition = lambda state: state.has(andross, self.player)
         self.multiworld.completion_condition[self.player] = condition
 
-    def create_everything(self):
-        parser = StarFox64SSRules(self)
-        self.create_victory_condition()
+    def create_regions(self):
+        ap_regions = {name: Region(name, self.player, self.multiworld) for name in data.regions}
+        self.pending_rules = []  # (location or entrance, logic, where), applied in set_rules
+        self.pending_items = []  # (location, item name), filled in create_items
+        self.start_items = []  # Menu "locations" are option-only grants, precollected in create_items
         for region_name, region in data.regions.items():
-            ap_region = regions.create_region(self, region_name)
-            for key, value in region.items():
-                match key:
-                    case "locations":
-                        for location_name, location in value.items():
-                            ap_location = StarFox64SSLocation(
-                                self.player, location_name, None, ap_region
-                            )
-                            item_name = items.pick_name(
-                                self, location["item"], location.get("group")
-                            )
-                            item_name = self.swap_items.get(item_name, item_name)
-                            if item_name == "Nothing":
-                                item_name = self.get_filler_item_name()
-                            item = self.create_item(item_name)
-                            ap_location.access_rule = parser.parse(
-                                location["logic"],
-                                f"{self.game}, Location: {region_name} -> {location_name}",
-                            )
-                            if region_name == "Menu":
-                                if ap_location.access_rule(None):
-                                    self.push_precollected(item)
-                                continue
-                            if item.code:
-                                ap_location.address = self.location_name_to_id[
-                                    location_name
-                                ]
-                                self.multiworld.itempool.append(item)
-                            else:
-                                ap_location.place_locked_item(item)
-                            ap_region.locations.append(ap_location)
-                    case "exits":
-                        for exit_name, _exit in value.items():
-                            ap_exit = regions.create_region(self, exit_name)
-                            ap_region.connect(
-                                ap_exit,
-                                None,
-                                parser.parse(
-                                    _exit["logic"],
-                                    f"{self.game}, Exit: {region_name} -> {exit_name}",
-                                ),
-                            )
-            self.multiworld.regions.append(ap_region)
-        regions.cache.clear()
+            ap_region = ap_regions[region_name]
+            for location_name, location in region.get("locations", {}).items():
+                item_name = items.pick_name(self, location["item"], location.get("group"))
+                item_name = self.swap_items.get(item_name, item_name)
+                if region_name == "Menu":
+                    if self.rules.parse(location["logic"], f"{self.game}, Location: Menu -> {location_name}")(None):
+                        self.start_items.append(item_name)
+                    continue
+                ap_location = StarFox64SSLocation(self.player, location_name, None, ap_region)
+                if not items.is_event(self, data.items[item_name].get("type", item_name)):
+                    ap_location.address = self.location_name_to_id[location_name]
+                ap_region.locations.append(ap_location)
+                self.pending_items.append((ap_location, item_name))
+                self.pending_rules.append(
+                    (ap_location, location["logic"], f"{self.game}, Location: {region_name} -> {location_name}")
+                )
+            for exit_name, _exit in region.get("exits", {}).items():
+                entrance = ap_region.connect(ap_regions[exit_name])
+                self.pending_rules.append((entrance, _exit["logic"], f"{self.game}, Exit: {region_name} -> {exit_name}"))
+        self.multiworld.regions += ap_regions.values()
 
     def create_items(self):
-        self.create_everything()
+        for item_name in self.start_items:
+            self.push_precollected(self.create_item(item_name))
+        for ap_location, item_name in self.pending_items:
+            if item_name == "Nothing":
+                item_name = self.get_filler_item_name()
+            item = self.create_item(item_name)
+            # create_regions picked the address from the same event check create_item uses.
+            assert (item.code is None) == (ap_location.address is None), ap_location.name
+            if item.code:
+                self.multiworld.itempool.append(item)
+            else:
+                ap_location.place_locked_item(item)
+
+    def set_rules(self):
+        self.create_victory_condition()
+        for spot, logic, where in self.pending_rules:
+            spot.access_rule = self.rules.parse(logic, where)
 
     def get_filler_item_name(self):
         return self.random.choices(

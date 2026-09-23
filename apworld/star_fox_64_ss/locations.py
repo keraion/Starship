@@ -13,4 +13,4 @@ for group_name, locations in group_locations.items():
   groups[group_name] = set(locations)
 
 class StarFox64SSLocation(Location):
-  pass
+  game = "Star Fox 64 (Starship)"

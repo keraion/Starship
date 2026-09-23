@@ -13,7 +13,7 @@ for group_name, items in group_items.items():
   groups[group_name] = set(items)
 
 class StarFox64SSItem(Item):
-  pass
+  game = "Star Fox 64 (Starship)"
 
 def pick_name(world, item_name, group):
   match group:
