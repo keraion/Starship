@@ -109,7 +109,7 @@ class StarFox64SSWorld(World):
         "Gold Ring": 6,
     }
 
-    def check_options(self):
+    def generate_early(self):
         if (
             not self.options.shuffle_medals
             and self.options.required_medals == 15
@@ -120,6 +120,14 @@ class StarFox64SSWorld(World):
                 "Wants all Medals to access Venom and wants Venom to have a Medal. Forcing required_medals to 14."
             )
             self.options.required_medals.value = 14
+
+        self.swap_items: dict[str, str] = {}
+        if self.options.shuffle_starting_level:
+            valid_levels = group_items["Levels"].copy()
+            valid_levels.remove("Venom")
+            item_name = self.random.choice(valid_levels)
+            self.swap_items["Corneria"] = item_name
+            self.swap_items[item_name] = "Corneria"
 
     def create_item(self, item_name):
         return items.create_item(self, item_name)
@@ -144,13 +152,6 @@ class StarFox64SSWorld(World):
     def create_everything(self):
         parser = StarFox64SSRules(self)
         self.create_victory_condition()
-        swap_items = {}
-        if self.options.shuffle_starting_level:
-            valid_levels = group_items["Levels"].copy()
-            valid_levels.remove("Venom")
-            item_name = self.random.choice(valid_levels)
-            swap_items["Corneria"] = item_name
-            swap_items[item_name] = "Corneria"
         for region_name, region in data.regions.items():
             ap_region = regions.create_region(self, region_name)
             for key, value in region.items():
@@ -163,8 +164,7 @@ class StarFox64SSWorld(World):
                             item_name = items.pick_name(
                                 self, location["item"], location.get("group")
                             )
-                            if item_name in swap_items:
-                                item_name = swap_items[item_name]
+                            item_name = self.swap_items.get(item_name, item_name)
                             if item_name == "Nothing":
                                 item_name = self.get_filler_item_name()
                             item = self.create_item(item_name)
@@ -199,7 +199,6 @@ class StarFox64SSWorld(World):
         regions.cache.clear()
 
     def create_items(self):
-        self.check_options()
         self.create_everything()
 
     def get_filler_item_name(self):
