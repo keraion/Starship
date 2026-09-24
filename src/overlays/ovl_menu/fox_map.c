@@ -5615,12 +5615,16 @@ void Map_801A9DE8(void) {
         Map_RemainingLives_Draw(254, 16, gLifeCount[gPlayerNum]);
     }
 
-    if ((gLastGameState == GSTATE_PLAY) || (gLastGameState == GSTATE_GAME_OVER)) {
+    // @port: Archipelago resumes a run from the per-slot save, so the hit totals also show when the map is entered
+    // from the title screen (vanilla hides them there because a new game has none yet).
+    bool apFromTitle = AP_IsEnabled() && (gLastGameState == GSTATE_NONE);
+
+    if ((gLastGameState == GSTATE_PLAY) || (gLastGameState == GSTATE_GAME_OVER) || apFromTitle) {
         if (D_menu_801CD83C < gTotalHits) {
             D_menu_801CD83C = gTotalHits;
         }
         Map_TotalHits_Draw();
-        Map_801A9FD4(false);
+        Map_801A9FD4(apFromTitle); // true: route panel for gMissionNumber (false reads gLastGameState)
     }
 
     // @port: @event: map HUD overlay

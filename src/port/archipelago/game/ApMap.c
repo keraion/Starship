@@ -15,6 +15,7 @@ extern PlanetId sPrevPlanetId;
 extern PlanetId sNextPlanetId;
 extern MissionStatus sPrevMissionStatus;
 extern s32 sMapState;
+extern bool gBackToMap; // mods/PortEnhancements.c: makes the prologue skip straight to the idle map
 extern s32 sMapSubState;
 extern s32 D_menu_801CD94C;
 extern s32 D_menu_801CD900[15];
@@ -317,6 +318,22 @@ static void RestoreFromSlot(void) {
     gLifeCount[0] = (st->lives < 0) ? (s16) AP_GetOption(AP_OPTION_DEFAULT_LIVES) : st->lives;
     gBombCount[0] = st->bombs;
     gGreatFoxIntact = st->greatFoxIntact;
+    // Main Game from the title leaves this set, and the first level's init would then reset everything above to
+    // new-game values (which PersistRunStats would save back over the slot).
+    gClearPlayerInfo = false;
+}
+
+// Any location checked (bit 0, the goal, included).
+static bool SlotHasProgress(void) {
+    APSlotState* st = AP_SaveState();
+    size_t i;
+
+    for (i = 0; i < sizeof(st->locations); i++) {
+        if (st->locations[i] != 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static void ResetConsumablesAfterGameOver(void) {
@@ -392,6 +409,10 @@ static void OnMapSetupPost(MapSetupPostEvent* event) {
         ResetConsumablesAfterGameOver();
     }
     RestoreFromSlot();
+    // Main Game on a slot with progress: skip the prologue (it still plays once, on a fresh slot).
+    if ((event->lastGameState == GSTATE_NONE) && SlotHasProgress()) {
+        gBackToMap = true;
+    }
 
     for (i = 0; i < 24; i++) {
         gPlanetPathStatus[i] = 0;
