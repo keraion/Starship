@@ -33,14 +33,14 @@ jobs:
       - name: Build
         env:
           VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
-          # Env form (not -D) so the TorchExternal sub-build picks it up too
           CMAKE_C_COMPILER_LAUNCHER: sccache
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
         run: |
           New-Item -ItemType Directory -Force -Path "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
           # -D because msvc-dev-cmd overwrites env VCPKG_ROOT with VS's bundled (non-git) vcpkg
           cmake -S . -B "build/x64" -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ github.workspace }}\vcpkg"
-          cmake --build ./build/x64
+          # Skip TorchExternal (standalone asset tool, unused here; Torch is already built into Starship)
+          cmake --build ./build/x64 --target Starship
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
