@@ -491,8 +491,11 @@ if(MSVC)
           ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
           ${DEFAULT_CXX_EXCEPTION_HANDLING}
       )
-      target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Debug>:/ZI;>)
-      target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Release>:/Zi;>)
+      # sccache can't cache shared-PDB builds; DEFAULT_CXX_DEBUG_INFORMATION_FORMAT gives /Z7 instead
+      if (NOT CMAKE_C_COMPILER_LAUNCHER STREQUAL "sccache")
+          target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Debug>:/ZI;>)
+          target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Release>:/Zi;>)
+      endif()
   elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
       target_compile_options(${PROJECT_NAME} PRIVATE
           $<$<CONFIG:Debug>:
