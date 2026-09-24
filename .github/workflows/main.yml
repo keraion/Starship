@@ -131,7 +131,8 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
         run: |
           New-Item -ItemType Directory -Force -Path "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
-          cmake -S . -B "build/x64" -G Ninja -DCMAKE_BUILD_TYPE=Release
+          # -D because msvc-dev-cmd overwrites env VCPKG_ROOT with VS's bundled (non-git) vcpkg
+          cmake -S . -B "build/x64" -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ github.workspace }}\vcpkg"
           cmake --build ./build/x64
       - name: Download starship.o2r
         uses: actions/download-artifact@v4
