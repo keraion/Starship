@@ -23,7 +23,7 @@ class StarFox64SSWebWorld(WebWorld):
             "English",
             "setup_en.md",
             "setup/en",
-            ["Austin", "Starship contributors"],
+            ["keraion"],
         )
     ]
     option_groups = [
