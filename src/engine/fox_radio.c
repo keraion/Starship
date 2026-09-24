@@ -59,6 +59,9 @@ void Radio_PlayMessage(u16* msg, RadioCharacterId character) {
     TeamId teamId;
     s32 pad;
     s32 priority;
+    // @port: @event: listeners may substitute the message before it is resolved
+    CALL_EVENT(RadioMessageEvent, msg, character);
+    msg = RadioMessageEvent_.msg;
     msg = SEGMENTED_TO_VIRTUAL(msg);
 
     switch (msg[0]) {

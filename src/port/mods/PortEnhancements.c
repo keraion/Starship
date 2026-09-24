@@ -8,6 +8,11 @@
 #define INIT_EVENT_IDS
 #include "port/hooks/Events.h"
 
+// Must come after the INIT_EVENT_IDS include above (ApGame.h pulls in the event headers).
+#include "port/archipelago/ArchipelagoBridge.h"
+#include "port/archipelago/game/ApGame.h"
+#include "port/mods/RestartPoint.h"
+
 bool gBackToMap = false;
 
 void OnDisplayUpdatePost(IEvent* event) {
@@ -408,6 +413,9 @@ void PortEnhancements_Init() {
     PortEnhancements_Register();
 
     // Register event listeners
+    // Archipelago client tick runs before any other game-side listener.
+    // (listeners are sorted ascending by priority, so LOW runs first)
+    REGISTER_LISTENER(GamePreUpdateEvent, (EventCallback) AP_OnGameTick, EVENT_PRIORITY_LOW);
     REGISTER_LISTENER(DisplayPostUpdateEvent, OnDisplayUpdatePost, EVENT_PRIORITY_NORMAL);
     REGISTER_LISTENER(GamePostUpdateEvent, OnGameUpdatePost, EVENT_PRIORITY_NORMAL);
     REGISTER_LISTENER(PlayUpdateEvent, OnPlayUpdateEvent, EVENT_PRIORITY_NORMAL);
@@ -430,6 +438,15 @@ void PortEnhancements_Init() {
 
     // If we close the game while debug pause is active, we want it to be deactivated when we run again.
     CVarSetInteger("gDebugPause", 0);
+
+    // Cosmetic enhancements (engine glow), which an Archipelago yaml may override
+    Cosmetics_Init();
+
+    // Free pause-menu restarts (shared with the Archipelago pause menu)
+    RestartPoint_Init();
+
+    // Archipelago game-side listeners
+    ApGame_Init();
 }
 
 void PortEnhancements_Register() {
@@ -462,6 +479,26 @@ void PortEnhancements_Register() {
 
     // Register item events
     REGISTER_EVENT(ItemDropEvent);
+    REGISTER_EVENT(ItemStaticLoadEvent);
+    REGISTER_EVENT(ActorStaticLoadEvent);
+    REGISTER_EVENT(ActorItemDropEvent);
+    REGISTER_EVENT(RadioMessageEvent);
+    REGISTER_EVENT(PlayerEngineGlowEvent);
+
+    // Register map / menu events
+    REGISTER_EVENT(MapSetupPreEvent);
+    REGISTER_EVENT(MapSetupPostEvent);
+    REGISTER_EVENT(MapIdleUpdateEvent);
+    REGISTER_EVENT(MapMenuInputEvent);
+    REGISTER_EVENT(MapMenuDrawEvent);
+    REGISTER_EVENT(MapHudDrawEvent);
+    REGISTER_EVENT(MainMenuSelectEvent);
+    REGISTER_EVENT(MissionClearEvent);
+    REGISTER_EVENT(PreVenomTransitionEvent);
+    REGISTER_EVENT(VenomClearEvent);
+    REGISTER_EVENT(MedalThresholdEvent);
+    REGISTER_EVENT(PauseMenuInputEvent);
+    REGISTER_EVENT(PauseMenuDrawEvent);
 
     // Register actor events
     REGISTER_EVENT(ObjectInitEvent);

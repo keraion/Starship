@@ -40,6 +40,9 @@
 #include "audio/GameAudio.h"
 #include "port/patches/DisplayListPatch.h"
 #include "port/mods/PortEnhancements.h"
+#ifdef ENABLE_ARCHIPELAGO
+#include "port/archipelago/Archipelago.h"
+#endif
 
 #include <Fast3D/interpreter.h>
 #include <filesystem>
@@ -302,9 +305,15 @@ void GameEngine::Create() {
     osSetTime(0);
 #endif
     PortEnhancements_Init();
+#ifdef ENABLE_ARCHIPELAGO
+    Archipelago::Init();
+#endif
 }
 
 void GameEngine::Destroy() {
+#ifdef ENABLE_ARCHIPELAGO
+    Archipelago::Shutdown();
+#endif
     PortEnhancements_Exit();
     AudioExit();
     for (auto ptr : MemoryPool) {

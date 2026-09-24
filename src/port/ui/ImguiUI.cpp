@@ -1,6 +1,11 @@
 #include "ImguiUI.h"
 #include "UIWidgets.h"
 #include "ResolutionEditor.h"
+#ifdef ENABLE_ARCHIPELAGO
+#include "port/archipelago/ArchipelagoWindow.h"
+#include "port/archipelago/ArchipelagoConsole.h"
+#include "port/archipelago/ArchipelagoTracker.h"
+#endif
 
 #include <spdlog/spdlog.h>
 #include <imgui.h>
@@ -33,6 +38,11 @@ std::shared_ptr<Ship::GuiWindow> mInputEditorWindow;
 std::shared_ptr<Ship::GuiWindow> mGfxDebuggerWindow;
 std::shared_ptr<Notification::Window> mNotificationWindow;
 std::shared_ptr<AdvancedResolutionSettings::AdvancedResolutionSettingsWindow> mAdvancedResolutionSettingsWindow;
+#ifdef ENABLE_ARCHIPELAGO
+std::shared_ptr<ArchipelagoWindow> mArchipelagoWindow;
+std::shared_ptr<ArchipelagoConsole::Window> mArchipelagoConsoleWindow;
+std::shared_ptr<Ship::GuiWindow> mArchipelagoTrackerWindow;
+#endif
 
 void SetupGuiElements() {
     auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
@@ -79,6 +89,14 @@ void SetupGuiElements() {
     mNotificationWindow = std::make_shared<Notification::Window>("gNotifications", "Notifications Window");
     gui->AddGuiWindow(mNotificationWindow);
     mNotificationWindow->Show();
+#ifdef ENABLE_ARCHIPELAGO
+    mArchipelagoWindow = std::make_shared<ArchipelagoWindow>("gArchipelago.WindowOpen", "Archipelago");
+    gui->AddGuiWindow(mArchipelagoWindow);
+    mArchipelagoConsoleWindow = std::make_shared<ArchipelagoConsole::Window>("gArchipelago.ConsoleOpen", "Archipelago Console");
+    gui->AddGuiWindow(mArchipelagoConsoleWindow);
+    mArchipelagoTrackerWindow = std::make_shared<ArchipelagoTrackerWindow>("gArchipelago.TrackerOpen", "Archipelago Tracker");
+    gui->AddGuiWindow(mArchipelagoTrackerWindow);
+#endif
 }
 
 void Destroy() {
@@ -90,6 +108,11 @@ void Destroy() {
     mStatsWindow = nullptr;
     mInputEditorWindow = nullptr;
     mNotificationWindow = nullptr;
+#ifdef ENABLE_ARCHIPELAGO
+    mArchipelagoWindow = nullptr;
+    mArchipelagoConsoleWindow = nullptr;
+    mArchipelagoTrackerWindow = nullptr;
+#endif
 }
 
 std::string GetWindowButtonText(const char* text, bool menuOpen) {
@@ -601,9 +624,30 @@ void DrawEnhancementsMenu() {
                 .defaultValue = true
             });
             UIWidgets::CVarCheckbox("Use red radio backgrounds for enemies.", "gEnemyRedRadio");
+            UIWidgets::CVarCheckbox("Checkpoint restart", "gEnhancements.CheckpointRestart", {
+                .tooltip = "Adds Restart Level and Restart at Checkpoint to the pause menu. Restarting this way "
+                           "costs no Arwing and does not count as a death, and gives back the lasers, bombs, gold "
+                           "rings and wing health you had at that point instead of resetting them."
+            });
             UIWidgets::CVarSliderInt("Cockpit Glass Opacity: %d", "gCockpitOpacity", 0, 255, 120);
             
 
+            ImGui::EndMenu();
+        }
+
+        if (UIWidgets::BeginMenu("Cosmetics")) {
+            static const char* engineGlowChoices[] = { "Default", "Rainbow", "Red", "Deep Pink", "Magenta",
+                                                       "Electric Indigo", "Blue", "Dodger Blue", "Aqua",
+                                                       "Spring Green", "Lime", "Chartreuse", "Yellow",
+                                                       "Dark Orange" };
+            UIWidgets::CVarCombobox("Engine Glow", "gCosmetics.EngineGlow", engineGlowChoices, {
+                .tooltip = "Colour of your Arwing's and Landmaster's engine glow. Default keeps the vanilla colour for the level type.",
+                .defaultIndex = 0,
+            });
+            UIWidgets::CVarCheckbox("Let an Archipelago yaml set cosmetics", "gCosmetics.AllowArchipelago", {
+                .tooltip = "While connected to an Archipelago room, cosmetic options in your player yaml (engine_glow) override the settings above. Untick to always use your own settings.",
+                .defaultValue = true
+            });
             ImGui::EndMenu();
         }
         
@@ -933,7 +977,11 @@ void GameMenuBar::DrawElement() {
 
         ImGui::SetCursorPosY(0.0f);
 
+#ifdef ENABLE_ARCHIPELAGO
+        DrawArchipelagoMenu();
+
         ImGui::SetCursorPosY(0.0f);
+#endif
 
         DrawDebugMenu();
 

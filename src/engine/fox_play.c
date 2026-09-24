@@ -22,6 +22,7 @@
 #include "assets/ast_area_6.h"
 #include "assets/ast_zoness.h"
 #include "port/hooks/Events.h"
+#include "port/archipelago/ArchipelagoBridge.h"
 
 extern float gCurrentScreenWidth;
 extern float gCurrentScreenHeight;
@@ -56,6 +57,10 @@ Environment* sEnvironment;
 #define MEM_ARRAY_ALLOCATE(arr, count) ((arr) = Memory_Allocate((count) * sizeof(*(arr))))
 
 bool Play_CheckMedalStatus(u16 hitCount) {
+    // @port: @event: allow mods to override the medal hit requirement
+    CALL_EVENT(MedalThresholdEvent, gCurrentLevel, hitCount);
+    hitCount = MedalThresholdEvent_.hitCount;
+
     if ((gTeamShields[TEAM_ID_SLIPPY] > 0) && (gTeamShields[TEAM_ID_PEPPY] > 0) && (gTeamShields[TEAM_ID_FALCO] > 0) &&
         (gHitCount >= hitCount)) {
         return true;
@@ -7172,7 +7177,7 @@ void Play_Main(void) {
 
             if ((gControllerPress[gMainController].button & START_BUTTON) &&
                 (gPlayer[0].state == PLAYERSTATE_LEVEL_INTRO) &&
-                gSaveFile.save.data.planet[sSaveSlotFromLevel[gCurrentLevel]].normalClear) {
+                (AP_IsEnabled() || gSaveFile.save.data.planet[sSaveSlotFromLevel[gCurrentLevel]].normalClear)) {
                 Audio_ClearVoice();
                 Audio_SetEnvSfxReverb(0);
                 Play_ClearObjectData();

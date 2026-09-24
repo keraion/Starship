@@ -952,7 +952,10 @@ void Display_LandmasterEngineGlow_Draw(Player* player) {
         Matrix_Scale(gGfxMatrix, 0.9f * 0.9f, 0.9f * 0.63f, 1.0f, MTXF_APPLY);
     }
     Matrix_SetGfxMtx(&gMasterDisp);
-    Display_DrawEngineGlow(gLevelType);
+    // @port: @event: cosmetics may replace the player's engine glow
+    CALL_CANCELLABLE_EVENT(PlayerEngineGlowEvent, player, gLevelType) {
+        Display_DrawEngineGlow(gLevelType);
+    }
     Matrix_Pop(&gGfxMatrix);
 
     FrameInterpolation_RecordCloseChild();

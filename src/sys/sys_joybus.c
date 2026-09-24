@@ -1,3 +1,4 @@
+#include "port/archipelago/ArchipelagoBridge.h"
 #include "sys.h"
 
 OSContPad gControllerHold[4];
@@ -97,10 +98,17 @@ void Controller_ReadData(void) {
 }
 
 bool Save_ReadData(void) {
+    // @port: while an Archipelago session is active the EEPROM lives inside the per-slot save file.
+    if (AP_IsEnabled()) {
+        return AP_EepromRead(&gSaveIOBuffer, sizeof(gSaveIOBuffer));
+    }
     return Save_ReadEeprom(&gSaveIOBuffer) == 0;
 }
 
 bool Save_WriteData(void) {
+    if (AP_IsEnabled()) {
+        return AP_EepromWrite(&gSaveIOBuffer, sizeof(gSaveIOBuffer));
+    }
     return Save_WriteEeprom(&gSaveIOBuffer) == 0;
 }
 
