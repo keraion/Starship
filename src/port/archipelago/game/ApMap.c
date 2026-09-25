@@ -215,7 +215,11 @@ static void RefreshTracker(void) {
             }
         }
 
-        hasPath = pathsMode ? HasPath(start, path->end) : sAccess[start];
+        // Colored when the route is actually playable:
+        // both ends reachable (level mode) and the path item held (paths mode)
+        // NOTE: Maybe change this for level mode in the future
+        hasPath = sAccess[start] && (path->end >= 0) && (path->end < PLANET_MAX) && sAccess[path->end] &&
+                  HasPath(start, path->end);
 
         if (hasPath) {
             path->alpha = AP_PATH_ALPHA_AVAILABLE;
@@ -224,11 +228,11 @@ static void RefreshTracker(void) {
         } else {
             path->alpha = pathsMode ? 0 : AP_PATH_ALPHA_UNREACHABLE;
         }
-        gPlanetPathStatus[i] = hasPath ? 3 : 4; // 3 = coloured line, 4 = grey line
+        gPlanetPathStatus[i] = hasPath ? 3 : 4; // 3 = colored line, 4 = grey line
         gTexturedLines[i].zScale = 0.0f;
 
         // No Arwing glyphs on the paths: each one is a full model (expensive on slow GL paths) and the
-        // animated variant disables frame interpolation for the rest of the frame. Path colour and the
+        // animated variant disables frame interpolation for the rest of the frame. Path color and the
         // planet star/medal glyphs carry the tracker information instead.
         path->unk_14 = 0;
         (void) hasLocation;
