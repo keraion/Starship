@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: sudo apt-get install gcc g++ git cmake ninja-build lsb-release
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.13
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: ${{ runner.os }}-o2r-ccache-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
@@ -100,34 +100,57 @@ jobs:
   build-windows:
     needs: generate-port-o2r
     runs-on: windows-2022
+    env:
+      # Pinned so vcpkg ABI hashes stay stable and the binary cache actually hits; bump to update deps.
+      VCPKG_TAG: 2026.07.29
+      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Cache vcpkg binaries
-        uses: actions/cache@v4
+      - name: Clone vcpkg
+        run: git clone --quiet --depth 1 --branch $env:VCPKG_TAG https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}\vcpkg-binary-cache
-          key: vcpkg-x64-windows-static-${{ hashFiles('CMakeLists.txt', 'cmake/automate-vcpkg.cmake') }}
-          restore-keys: |
-            vcpkg-x64-windows-static-
+          key: vcpkg-x64-windows-static-${{ env.VCPKG_TAG }}-
+          restore-keys: vcpkg-x64-windows-static-${{ env.VCPKG_TAG }}-
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          variant: sccache
+          key: windows # shared with windows.yml so PR runs can reuse main's cache
+          max-size: 2G
       - name: Build
         env:
           VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          CMAKE_CXX_COMPILER_LAUNCHER: sccache
         run: |
           New-Item -ItemType Directory -Force -Path "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
-          cmake -S . -B "build/x64" -G "Visual Studio 17 2022" -T v143 -A x64 -DCMAKE_BUILD_TYPE=Release
-          cmake --build ./build/x64 --config Release --parallel 10
+          # -D because msvc-dev-cmd overwrites env VCPKG_ROOT with VS's bundled (non-git) vcpkg
+          cmake -S . -B "build/x64" -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ github.workspace }}\vcpkg"
+          # Skip TorchExternal (standalone asset tool, unused here; Torch is already built into Starship)
+          cmake --build ./build/x64 --target Starship
+      # Keyed on content: saves only when vcpkg built something new (e.g. after a runner compiler update)
+      - name: Save vcpkg binaries
+        if: steps.vcpkg-cache.outputs.cache-matched-key != format('vcpkg-x64-windows-static-{0}-{1}', env.VCPKG_TAG, hashFiles('vcpkg-binary-cache/**'))
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}\vcpkg-binary-cache
+          key: vcpkg-x64-windows-static-${{ env.VCPKG_TAG }}-${{ hashFiles('vcpkg-binary-cache/**') }}
       - name: Download starship.o2r
         uses: actions/download-artifact@v4
         with:
           name: starship.o2r
-          path: ./build/x64/Release
+          path: ./build/x64
       - name: Create Package
         run: |
           mkdir starship-release
-          mv build/x64/Release/Starship.exe starship-release/
-          mv build/x64/Release/starship.o2r starship-release/
+          mv build/x64/Starship.exe starship-release/
+          mv build/x64/starship.o2r starship-release/
           mv config.yml starship-release/
           mv assets starship-release/
           mv networking starship-release/networking
@@ -187,7 +210,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install gcc g++ git cmake ninja-build lsb-release libsdl2-dev libpng-dev libsdl2-net-dev libzip-dev zipcmp zipmerge ziptool nlohmann-json3-dev libtinyxml2-dev libspdlog-dev libboost-dev libopengl-dev libogg-dev libvorbis-dev libssl-dev zlib1g-dev
       - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2.14
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: linux-ccache-${{ github.ref }}-${{ github.sha }}
           restore-keys: |

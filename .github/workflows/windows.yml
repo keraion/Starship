@@ -7,27 +7,52 @@ on:
 jobs:
   build:
     runs-on: windows-2022
+    env:
+      # Pinned so vcpkg ABI hashes stay stable and the binary cache actually hits; bump to update deps.
+      VCPKG_TAG: 2026.07.29
+      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Cache vcpkg binaries
-        uses: actions/cache@v4
+      - name: Clone vcpkg
+        run: git clone --quiet --depth 1 --branch $env:VCPKG_TAG https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}\vcpkg-binary-cache
-          key: vcpkg-x64-windows-static-${{ hashFiles('CMakeLists.txt', 'cmake/automate-vcpkg.cmake') }}
-          restore-keys: |
-            vcpkg-x64-windows-static-
+          key: vcpkg-x64-windows-static-${{ env.VCPKG_TAG }}-
+          restore-keys: vcpkg-x64-windows-static-${{ env.VCPKG_TAG }}-
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          variant: sccache
+          key: windows # shared with main.yml so PR runs can reuse main's cache
+          max-size: 2G
       - name: Build
         env:
           VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          CMAKE_CXX_COMPILER_LAUNCHER: sccache
         run: |
           New-Item -ItemType Directory -Force -Path "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
-          cmake -S . -B "build/x64" -G "Visual Studio 17 2022" -T v143 -A x64 -DCMAKE_BUILD_TYPE=Release
-          cmake --build ./build/x64
+          # -D because msvc-dev-cmd overwrites env VCPKG_ROOT with VS's bundled (non-git) vcpkg
+          cmake -S . -B "build/x64" -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="${{ github.workspace }}\vcpkg"
+          # Skip TorchExternal (standalone asset tool, unused here; Torch is already built into Starship)
+          cmake --build ./build/x64 --target Starship
+      # Keyed on content: saves only when vcpkg built something new (e.g. after a runner compiler update)
+      - name: Save vcpkg binaries
+        if: steps.vcpkg-cache.outputs.cache-matched-key != format('vcpkg-x64-windows-static-{0}-{1}', env.VCPKG_TAG, hashFiles('vcpkg-binary-cache/**'))
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}\vcpkg-binary-cache
+          key: vcpkg-x64-windows-static-${{ env.VCPKG_TAG }}-${{ hashFiles('vcpkg-binary-cache/**') }}
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
           name: starship-windows
-          path: ./build/x64/Debug
+          path: |
+            build/x64/Starship.exe
+            build/x64/Starship.pdb
           retention-days: 1

@@ -451,6 +451,13 @@ option(BUILD_SM64 "Build with Super Mario 64 support" OFF)
 option(BUILD_MK64 "Build with Mario Kart 64 support" OFF)
 option(BUILD_FZERO "Build with F-Zero X support" OFF)
 add_subdirectory(tools/Torch)
+if (MSVC)
+    # Torch passes /O3, which MSVC ignores (D9002) and sccache reads as a second input file,
+    # so none of Torch is cached. Swap for /O2 until fixed upstream in Torch.
+    get_target_property(_torch_opts torch COMPILE_OPTIONS)
+    list(TRANSFORM _torch_opts REPLACE "^/O3$" "/O2")
+    set_target_properties(torch PROPERTIES COMPILE_OPTIONS "${_torch_opts}")
+endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE torch "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch")
@@ -491,8 +498,11 @@ if(MSVC)
           ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
           ${DEFAULT_CXX_EXCEPTION_HANDLING}
       )
-      target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Debug>:/ZI;>)
-      target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Release>:/Zi;>)
+      # sccache can't cache shared-PDB builds; DEFAULT_CXX_DEBUG_INFORMATION_FORMAT gives /Z7 instead
+      if (NOT CMAKE_C_COMPILER_LAUNCHER STREQUAL "sccache")
+          target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Debug>:/ZI;>)
+          target_compile_options(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Release>:/Zi;>)
+      endif()
   elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
       target_compile_options(${PROJECT_NAME} PRIVATE
           $<$<CONFIG:Debug>:
