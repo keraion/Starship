@@ -41,6 +41,7 @@ class Archipelago final : public IAPTransportListener {
     std::string PlayerAlias(int player) const;
     int OwnPlayer() const { return mOwnPlayer; }
     size_t CheckedCount() const;
+    size_t LocationCount() const;
     size_t ReceivedCount() const { return mReceived.size(); }
     bool GoalDone() const;
 

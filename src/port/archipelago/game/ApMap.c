@@ -785,7 +785,7 @@ static s32 InLogicAtPlanet(PlanetId planet) {
 
     for (loc = 1; loc < AP_LOCATION_MAX; loc++) {
         s32 region = ApLogic_LocationRegion((uint16_t) loc);
-        if ((region < 0) || (gApRegionPlanet[region] != planet)) {
+        if ((region < 0) || (gApRegionPlanet[region] != planet) || !AP_IsRealLocation((uint16_t) loc)) {
             continue;
         }
         if (!AP_IsLocationChecked((uint16_t) loc) && ApLogic_LocationInLogic((uint16_t) loc)) {

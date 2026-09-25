@@ -28,6 +28,10 @@ bool AP_IsLocationChecked(uint16_t locationId) {
     (void) locationId;
     return false;
 }
+bool AP_IsRealLocation(uint16_t locationId) {
+    (void) locationId;
+    return false;
+}
 void AP_CheckLocation(uint16_t locationId) {
     (void) locationId;
 }

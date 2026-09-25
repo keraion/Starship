@@ -59,6 +59,7 @@ uint16_t AP_GetOption(uint16_t optionId);
 uint8_t AP_GetItemCount(uint16_t itemId);
 bool AP_HasItem(uint16_t itemId);
 bool AP_IsLocationChecked(uint16_t locationId);
+bool AP_IsRealLocation(uint16_t locationId); // tracked by the server (not an event-only location)
 void AP_CheckLocation(uint16_t locationId); // sets the bit, marks dirty, queues the send
 void AP_GoalCompleted(void);
 

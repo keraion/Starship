@@ -21,15 +21,6 @@ void ArchipelagoTrackerWindow::DrawElement() {
     ApLogic_Update();
 
     int total = 0;
-    int checkedTotal = 0;
-    for (uint16_t loc = 1; loc < AP_LOCATION_MAX; loc++) {
-        if (!ap->IsRealLocation(loc)) {
-            continue;
-        }
-        if (ApLogic_LocationRegion(loc) >= 0 && AP_IsLocationChecked(loc)) {
-            checkedTotal++;
-        }
-    }
 
     static bool showChecked = false;
     ImGui::Checkbox("Show checked locations", &showChecked);
@@ -75,6 +66,6 @@ void ArchipelagoTrackerWindow::DrawElement() {
     }
 
     ImGui::Separator();
-    ImGui::Text("%d in logic, %d checked", total, checkedTotal);
+    ImGui::Text("%d in logic, %zu / %zu checked", total, ap->CheckedCount(), ap->LocationCount());
     ImGui::End();
 }
