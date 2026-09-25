@@ -2756,6 +2756,11 @@ void Audio_SetVoiceLanguage(u8 language) {
     }
 }
 
+// @port: force the next spec request to do a full reset, so voice/SFX volume is restored after a soft reset
+void Audio_ForceSpecReset(void) {
+    sAudioSpecId = 0xFF;
+}
+
 void Audio_SetAudioSpec(u8 unused, u16 specParam) {
     u8 sfxChannelLayout = ((specParam & 0xFF00) >> 8);
     u8 specId = specParam & 0xFF;

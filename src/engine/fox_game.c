@@ -371,6 +371,8 @@ void Game_Update(void) {
 
         switch (gGameState) {
             case GSTATE_BOOT:
+                // @port: reload audio after a soft reset
+                Audio_ForceSpecReset();
                 gNextGameStateTimer = 2;
                 gGameState++;
                 break;
