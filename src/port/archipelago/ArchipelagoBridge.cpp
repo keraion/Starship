@@ -41,6 +41,10 @@ bool AP_IsLocationChecked(uint16_t locationId) {
     return (Archipelago::Instance->State().locations[locationId / 8] >> (locationId % 8)) & 1;
 }
 
+bool AP_IsRealLocation(uint16_t locationId) {
+    return AP_IsEnabled() && Archipelago::Instance->IsRealLocation(locationId);
+}
+
 void AP_CheckLocation(uint16_t locationId) {
     if (AP_IsEnabled()) {
         Archipelago::Instance->CheckLocation(locationId);

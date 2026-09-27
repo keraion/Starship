@@ -126,7 +126,7 @@ void ArchipelagoWindow::DrawElement() {
         ImGui::Text("Seed: %s", key.seed.c_str());
         ImGui::Text("Slot: %d (%s), team %d", key.slot, key.slotName.c_str(), key.team);
         ImGui::Text("Items received: %zu", ap->ReceivedCount());
-        ImGui::Text("Locations checked: %zu / %d", ap->CheckedCount(), AP_LOCATION_MAX - 1);
+        ImGui::Text("Locations checked: %zu / %zu", ap->CheckedCount(), ap->LocationCount());
         ImGui::Text("Goal: %s", ap->GoalDone() ? "completed" : "not yet");
         bool deathLink = ap->DeathLink();
         if (ImGui::Checkbox("DeathLink", &deathLink)) {

@@ -425,9 +425,13 @@ std::string Archipelago::PlayerAlias(int player) const {
 size_t Archipelago::CheckedCount() const {
     size_t n = 0;
     for (int id = 1; id < AP_LOCATION_MAX; id++) {
-        n += BitGet(mSlot.state.locations, id) ? 1 : 0;
+        n += (IsRealLocation(id) && BitGet(mSlot.state.locations, id)) ? 1 : 0;
     }
     return n;
+}
+
+size_t Archipelago::LocationCount() const {
+    return mServerLocations.empty() ? AP_LOCATION_MAX - 1 : mServerLocations.size();
 }
 
 bool Archipelago::GoalDone() const {
@@ -840,7 +844,7 @@ void Archipelago::RegisterConsoleCommands() {
             if (ap->IsEnabled()) {
                 *output += " | seed " + ap->Slot().GetKey().seed + " slot " + std::to_string(ap->Slot().GetKey().slot) +
                            " | items " + std::to_string(ap->ReceivedCount()) + " | checks " +
-                           std::to_string(ap->CheckedCount()) + "/" + std::to_string(AP_LOCATION_MAX - 1) +
+                           std::to_string(ap->CheckedCount()) + "/" + std::to_string(ap->LocationCount()) +
                            " | file " + ap->Slot().GetPath();
             }
         } else if (sub == "say") {
